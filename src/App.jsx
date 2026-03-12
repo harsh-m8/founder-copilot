@@ -710,9 +710,8 @@ function Navbar() {
         </div>
 
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <a href="#" className="btn-ghost" style={{ fontSize: "13px" }}>Sign in</a>
           <a href="#audit" className="btn-primary" style={{ fontSize: "13px" }}>
-            Book Free Audit <Ico path={P.arrow} size={13} color="white" />
+            Book Free Assessment <Ico path={P.arrow} size={13} color="white" />
           </a>
         </div>
       </div>
@@ -723,13 +722,13 @@ function Navbar() {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
   return (
-    <section className="hero-gradient" style={{ paddingTop: "110px", paddingBottom: "80px", overflow: "hidden" }}>
+    <section className="hero-gradient" style={{ paddingTop: "110px", paddingBottom: "40px", overflow: "hidden" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 24px" }}>
         {/* Eyebrow */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "28px" }}>
           <div className="tag" style={{ animation: "fadeIn 0.5s ease forwards" }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E8572A" }} className="animate-pulse-dot" />
-            Fractional CFO + Finance Stack for Startups
+            Fractional CFO + Services for Startups
           </div>
         </div>
 
@@ -741,22 +740,22 @@ function Hero() {
           margin: "0 auto 24px",
           animation: "fadeUp 0.7s ease forwards 0.1s", opacity: 0,
         }}>
-          Know Your Runway.{" "}
-          <span className="italic-serif" style={{ color: "#6B6B60" }}>Make Better</span>
-          <br />Decisions. Raise with{" "}
+          CFO-level Strategy,{" "}
+          <span className="italic-serif" style={{ color: "#6B6B60" }}></span>
+          <br />{" "}
           <span style={{
             background: "linear-gradient(135deg, #E8572A, #F5854A)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-          }}>Confidence.</span>
+          }}>without the CFO Salary</span>
         </h1>
 
         <p style={{
           textAlign: "center", fontSize: "18px", color: "#6B6B60",
-          maxWidth: "520px", margin: "0 auto 36px",
+          maxWidth: "600px", margin: "0 auto 36px",
           lineHeight: 1.65,
           animation: "fadeUp 0.7s ease forwards 0.2s", opacity: 0,
         }}>
-          Get a world-class CFO without hiring one. Real-time financial dashboards, investor-ready models, and strategic guidance — built for founders.
+          As a founder, your focus needs to be on your Customer + Product. <br/>Not Excel models - leave that to your fractional CFO. <br/> Make better decisions with real-time financials, investor-ready models, and strategic guidance.
         </p>
 
         {/* CTAs */}
@@ -765,20 +764,20 @@ function Hero() {
           animation: "fadeUp 0.7s ease forwards 0.3s", opacity: 0,
         }}>
           <a href="#audit" className="btn-accent" style={{ fontSize: "15px" }}>
-            Book Free Runway Audit <Ico path={P.arrow} size={15} color="white" />
+            Book Free Assessment <Ico path={P.arrow} size={15} color="white" />
           </a>
           <a href="#how-it-works" className="btn-ghost" style={{ fontSize: "14px" }}>
             See How It Works
           </a>
         </div>
 
-        {/* Social proof */}
+        {/* Social proof 
         <div style={{
           display: "flex", gap: "24px", justifyContent: "center", alignItems: "center",
           animation: "fadeUp 0.7s ease forwards 0.4s", opacity: 0, marginBottom: "64px",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {/* Avatar stack */}
+            
             <div style={{ display: "flex" }}>
               {["#E8572A", "#2563EB", "#1A9E5F", "#D97706"].map((c, i) => (
                 <div key={i} style={{
@@ -803,12 +802,12 @@ function Hero() {
             ))}
             <span style={{ fontSize: "13px", color: "#6B6B60", marginLeft: "4px" }}>4.9 / 5.0</span>
           </div>
-        </div>
+        </div>  */}
 
-        {/* Dashboard */}
+        {/* Dashboard 
         <div style={{ display: "flex", justifyContent: "center", position: "relative" }}>
           <DashboardMockup />
-        </div>
+        </div>*/}
       </div>
     </section>
   );
@@ -840,23 +839,24 @@ function Trust() {
 function Problem() {
   const [ref, vis] = useInView();
   const pains = [
+    { icon: P.model, title: "Outdated financial model", body: "Your 12–36 month model needs updates, scenarios re-assessed. No board-ready reporting." },
     { icon: P.eye, title: "Flying blind on runway", body: "You think you have 14 months but taxes, committed spend, and payroll might say otherwise." },
-    { icon: P.chart, title: "Messy books, no clarity", body: "Reconciliations are weeks behind. No clean numbers. No confidence walking into investor meetings." },
-    { icon: P.users, title: "Investors catch you off guard", body: "CAC payback, net revenue retention, burn multiple — questions that expose you don't have a CFO." },
+    { icon: P.chart, title: "Messy books, no clarity", body: "Reconciliations needed. No clean numbers. No confidence walking into investor meetings." },
+    { icon: P.users, title: "Investors catch you off guard", body: "CAC payback, net revenue retention, burn multiple — questions that expose you are not on top of things." },
     { icon: P.dollar, title: "Hiring decisions feel like bets", body: "You want to make 3 more hires but can't model the runway impact with any confidence." },
-    { icon: P.model, title: "No financial model", body: "You're navigating without a map. No 12–36 month model, no scenarios, no board-ready reporting." },
+    
   ];
   return (
-    <section style={{ padding: "100px 24px", background: "#FAFAF8" }}>
+    <section style={{ padding: "70px 24px", background: "#FAFAF8" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
         <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ marginBottom: "60px" }}>
           <p className="section-label" style={{ marginBottom: "12px" }}>The Problem</p>
-          <h2 className="display-headline" style={{ fontSize: "clamp(36px, 5vw, 54px)", maxWidth: "580px" }}>
-            Most founders operate{" "}
-            <span className="italic-serif" style={{ color: "#A8A89A" }}>financially blind.</span>
+          <h2 className="display-headline" style={{ fontSize: "clamp(36px, 5vw, 54px)" }}>
+            Most founders lack{" "}
+            <span className="italic-serif" style={{ color: "#A8A89A" }}>clear financial visibility.</span>
           </h2>
-          <p style={{ fontSize: "17px", color: "#6B6B60", marginTop: "16px", maxWidth: "480px", lineHeight: 1.65 }}>
-            It's not your fault — you're a builder. But without financial clarity, every major decision carries unnecessary risk.
+          <p style={{ fontSize: "17px", color: "#6B6B60", marginTop: "16px", maxWidth: "600px", lineHeight: 1.65 }}>
+            It's not your fault — you're a builder focused on your customer and product.  But without financial clarity, every major decision carries unnecessary risk.
           </p>
         </div>
 
@@ -882,10 +882,12 @@ function Problem() {
             </div>
           ))}
 
-          {/* CTA card */}
+          
+        </div>
+        {/* CTA card */}
           <div style={{
             background: "linear-gradient(135deg, #0D0D0B, #1A1A17)",
-            borderRadius: "14px", padding: "24px",
+            borderRadius: "14px", padding: "24px", margin:"24px 0px 0px 0px",
             display: "flex", flexDirection: "column", justifyContent: "space-between",
           }}>
             <p style={{ fontSize: "16px", fontWeight: 600, color: "white", lineHeight: 1.5, marginBottom: "20px" }}>
@@ -895,10 +897,9 @@ function Problem() {
               display: "inline-flex", alignItems: "center", gap: "6px",
               fontSize: "13px", fontWeight: 600, color: "#F5854A", textDecoration: "none",
             }}>
-              Start with a free audit <Ico path={P.arrow} size={13} color="#F5854A" />
+              Start with a free assessment <Ico path={P.arrow} size={13} color="#F5854A" />
             </a>
           </div>
-        </div>
       </div>
     </section>
   );
@@ -909,7 +910,7 @@ function Solution() {
   const [ref, vis] = useInView();
   return (
     <section style={{
-      padding: "100px 24px",
+      padding: "70px 24px",
       background: "#0D0D0B",
       position: "relative", overflow: "hidden",
     }}>
@@ -931,14 +932,15 @@ function Solution() {
             }}>Finance Copilot</span>
           </h2>
           <p style={{ fontSize: "17px", color: "#6B6B60", maxWidth: "520px", margin: "16px auto 0", lineHeight: 1.65 }}>
-            A complete finance system plus a seasoned CFO in your corner — so you can build with financial clarity.
+            A seasoned CFO in your corner so you can build with financial clarity with focus on your customer and product.
           </p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
           {[
-            { icon: P.zap, title: "Finance Stack", body: "Connected systems, real-time dashboards, automated month-end reporting. No more spreadsheet chaos.", accent: "#E8572A" },
+            
             { icon: P.brain, title: "CFO Strategy", body: "Monthly advisory, hiring frameworks, board prep, and on-demand decision support whenever you need it.", accent: "#2563EB" },
             { icon: P.rocket, title: "Fundraising Ready", body: "Investor-grade models, KPI dashboards, and due diligence data rooms built to close your next round.", accent: "#1A9E5F" },
+            { icon: P.zap, title: "Finance Stack (Coming soon)", body: "Connected systems, real-time dashboards, automated month-end reporting. No more spreadsheet chaos.", accent: "#E8572A" },
           ].map((f, i) => (
             <div key={i}
               className={`card-hover inview${vis ? " visible" : ""}`}
@@ -969,14 +971,14 @@ function Solution() {
 function Services() {
   const [ref, vis] = useInView();
   const services = [
-    { icon: P.chart,   title: "Finance Command Center",  body: "Real-time dashboard synced to QuickBooks, Xero, and Zoho Books. Track cash, burn, revenue, and margins — live.", tag: "Core" },
     { icon: P.brain,   title: "Strategic CFO Advisory",  body: "Monthly strategy sessions, budget reviews, and on-demand support. Your CFO when you need one.", tag: "Advisory" },
     { icon: P.model,   title: "Financial Modeling",      body: "12–36 month forecasts with scenario planning, hiring models, and unit economics analysis.", tag: "Modeling" },
     { icon: P.rocket,  title: "Fundraising Preparation", body: "Investor-ready models, KPI dashboards, and data room prep. Show up to VC meetings with confidence.", tag: "Fundraising" },
     { icon: P.cog,     title: "Finance Operations",      body: "Month-end close, financial reporting, bookkeeping oversight, and budget management. Clean books, every month.", tag: "Ops" },
+    { icon: P.chart,   title: "Finance Command Center (Coming soon)",  body: "Real-time dashboard synced to QuickBooks, Xero, and Zoho Books. Track cash, burn, revenue, and margins — live.", tag: "Core" },
   ];
   return (
-    <section id="services" style={{ padding: "100px 24px", background: "#FAFAF8" }}>
+    <section id="services" style={{ padding: "70px 24px", background: "#FAFAF8" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
         <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ marginBottom: "56px" }}>
           <p className="section-label" style={{ marginBottom: "12px" }}>What We Do</p>
@@ -986,7 +988,7 @@ function Services() {
               <span className="italic-serif" style={{ color: "#A8A89A" }}>should be doing.</span>
             </h2>
             <p style={{ fontSize: "15px", color: "#6B6B60", maxWidth: "320px", lineHeight: 1.6 }}>
-              A complete finance function at a fraction of the cost of a full-time hire.
+              CFO function along with your choice of services at startup-friendly prices.
             </p>
           </div>
         </div>
@@ -1032,18 +1034,18 @@ function Services() {
 function HowItWorks() {
   const [ref, vis] = useInView();
   const steps = [
-    { n: "01", icon: P.plug,  title: "Connect Your Systems",         body: "We integrate with QuickBooks, Xero, or Zoho Books. Your financial data syncs automatically, in real time." },
-    { n: "02", icon: P.chart, title: "Build Your Command Center",    body: "We clean your books, build your financial model, and set up your live dashboard. Done in 2 weeks." },
-    { n: "03", icon: P.brain, title: "Ongoing CFO Guidance",         body: "Monthly strategy sessions, model updates, budget tracking, and on-demand support all year round." },
+        { n: "01", icon: P.plug,  title: "Connect Your Systems",         body: "We integrate with QuickBooks, Xero, or Zoho Books. Your financial data syncs automatically, in real time." },
+        { n: "02", icon: P.brain, title: "Ongoing CFO Guidance",         body: "Monthly strategy sessions, model updates, budget tracking, and on-demand support all year round." },
+        { n: "03", icon: P.chart, title: "Build Your Command Center (Coming soon)",    body: "We clean your books, build your financial model, and set up your live dashboard. Done in 2 weeks." },
   ];
   return (
-    <section id="how-it-works" style={{ padding: "100px 24px", background: "white" }}>
+    <section id="how-it-works" style={{ padding: "70px 24px", background: "white" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
         <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ textAlign: "center", marginBottom: "64px" }}>
           <p className="section-label" style={{ marginBottom: "12px" }}>The Process</p>
           <h2 className="display-headline" style={{ fontSize: "clamp(32px, 4.5vw, 52px)" }}>
             Up and running{" "}
-            <span className="italic-serif" style={{ color: "#A8A89A" }}>in 2 weeks.</span>
+            <span className="italic-serif" style={{ color: "#A8A89A" }}>in 1 week.</span>
           </h2>
         </div>
 
@@ -1111,7 +1113,7 @@ function Pricing() {
     },
   ];
   return (
-    <section id="pricing" style={{ padding: "100px 24px", background: "#FAFAF8" }}>
+    <section id="pricing" style={{ padding: "70px 24px", background: "#FAFAF8" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
         <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ textAlign: "center", marginBottom: "56px" }}>
           <p className="section-label" style={{ marginBottom: "12px" }}>Pricing</p>
@@ -1120,7 +1122,7 @@ function Pricing() {
             <span className="italic-serif" style={{ color: "#A8A89A" }}>Startup-friendly pricing.</span>
           </h2>
           <p style={{ fontSize: "16px", color: "#6B6B60", marginTop: "14px" }}>
-            A full-time CFO costs $250K+/year. Our plans start at $1,500/mo.
+            A full-time CFO costs $250K+/year. Our plans start at startup-friendly prices.
           </p>
         </div>
 
@@ -1148,14 +1150,10 @@ function Pricing() {
                 }}>MOST POPULAR</div>
               )}
               <div style={{ marginBottom: "24px" }}>
-                <div style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: p.popular ? "#6B6B60" : "#A8A89A", marginBottom: "6px" }}>{p.name}</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-                  <span style={{ fontSize: "36px", fontWeight: 800, color: p.popular ? "white" : "#0D0D0B", fontFamily: "Geist, sans-serif", letterSpacing: "-0.03em" }}>{p.price}</span>
-                  <span style={{ fontSize: "13px", color: p.popular ? "#6B6B60" : "#A8A89A" }}>{p.period}</span>
-                </div>
+                <div style={{ fontSize: "20px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: p.popular ? "#6B6B60" : "#6B6B60", marginBottom: "8px" }}>{p.name}</div>
                 <p style={{ fontSize: "13px", color: p.popular ? "#6B6B60" : "#6B6B60", marginTop: "6px", lineHeight: 1.5 }}>{p.desc}</p>
               </div>
-              <a href="#audit" style={{
+              <a href="https://calendar.app.google/FLimpD3jFy2GXVSA8" style={{
                 display: "block", textAlign: "center",
                 padding: "11px", borderRadius: "10px", marginBottom: "24px",
                 fontSize: "14px", fontWeight: 600, textDecoration: "none",
@@ -1164,7 +1162,7 @@ function Pricing() {
                 color: p.popular ? "white" : "#0D0D0B",
                 border: p.popular ? "none" : "1.5px solid #E8E8E0",
                 boxShadow: p.popular ? "0 2px 8px rgba(232,87,42,0.3)" : "none",
-              }}>Get Started</a>
+              }}>Talk to us</a>
               <div style={{ borderTop: `1px solid ${p.popular ? "rgba(255,255,255,0.08)" : "#F0F0EB"}`, paddingTop: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
                 {p.features.map(f => (
                   <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
@@ -1209,13 +1207,13 @@ function Testimonials() {
     },
   ];
   return (
-    <section style={{ padding: "100px 24px", background: "white" }}>
+    <section style={{ padding: "70px 24px", background: "white" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
         <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ textAlign: "center", marginBottom: "56px" }}>
           <p className="section-label" style={{ marginBottom: "12px" }}>Founder Stories</p>
           <h2 className="display-headline" style={{ fontSize: "clamp(32px, 4.5vw, 52px)" }}>
-            Founders who got{" "}
-            <span className="italic-serif" style={{ color: "#A8A89A" }}>clarity.</span>
+            Founders who {" "}
+            <span className="italic-serif" style={{ color: "#A8A89A" }}>vouch for us.</span>
           </h2>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
@@ -1262,7 +1260,7 @@ function Testimonials() {
 function AuditOffer() {
   const [ref, vis] = useInView();
   return (
-    <section id="audit" style={{ padding: "100px 24px", background: "#FAFAF8" }}>
+    <section id="audit" style={{ padding: "70px 24px", background: "#FAFAF8" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
         <div ref={ref}
           className={`inview${vis ? " visible" : ""}`}
@@ -1292,13 +1290,13 @@ function AuditOffer() {
               <span style={{ fontSize: "11px", fontWeight: 700, color: "#E8572A", letterSpacing: "0.06em", textTransform: "uppercase" }}>Free · No Obligation</span>
             </div>
             <h2 className="display-headline" style={{ fontSize: "clamp(28px, 4vw, 44px)", color: "white", marginBottom: "16px" }}>
-              Free Runway &<br />Financial Health Audit
+              Free Runway &<br />Financial Health Assessment
             </h2>
             <p style={{ fontSize: "15px", color: "#6B6B60", lineHeight: 1.7, marginBottom: "28px" }}>
               A 60-minute deep-dive into your startup's financial health. Walk away with a clear picture of where you stand and exactly what to fix.
             </p>
-            <a href="mailto:hello@foundercopilot.in?subject=Free Audit" className="btn-accent" style={{ fontSize: "15px" }}>
-              Book My Free Runway Audit <Ico path={P.arrow} size={15} color="white" />
+            <a href="https://calendar.app.google/FLimpD3jFy2GXVSA8" className="btn-accent" style={{ fontSize: "15px" }}>
+              Book My Free Assessment <Ico path={P.arrow} size={15} color="white" />
             </a>
             <p style={{ fontSize: "12px", color: "#6B6B60", marginTop: "12px" }}>Takes 2 min to book · Available within 48 hrs</p>
           </div>
@@ -1337,15 +1335,15 @@ function FAQ() {
   const [open, setOpen] = useState(null);
   const [ref, vis] = useInView();
   const faqs = [
-    { q: "When should a startup hire a fractional CFO?", a: "Once you're generating revenue, have raised funding, or are actively planning to. If you're spending over $50K/month, making significant hiring decisions, or talking to investors — you need CFO-level financial management." },
-    { q: "How is this different from an accountant or bookkeeper?", a: "Bookkeepers record what happened. A CFO helps you plan what should happen. We do both — our finance operations layer handles the accounting, while our CFO advisory layer handles strategy, modeling, and investor readiness." },
-    { q: "Do you support QuickBooks, Xero, and Zoho Books?", a: "Yes, all three. We can also work with other accounting systems and will help you migrate to the right tool if you're not already on one of these platforms." },
-    { q: "Do you work with international startups?", a: "Yes. We work with startups across the US, UK, Canada, Australia, and other markets. For international clients we adapt to local accounting and reporting standards." },
-    { q: "How long does onboarding take?", a: "Most clients are fully onboarded in 2 weeks. Week one covers system integration and historical data cleanup. Week two delivers your first financial dashboard and baseline model." },
-    { q: "Can I start with just the free audit?", a: "Absolutely. The Runway Audit is no-obligation. You'll leave with a clear picture of your finances and a recommended plan — whether or not you become a client." },
+    { q: "When should a startup hire a fractional CFO?", a: "Once you're generating revenue, have raised funding, or are actively planning to. If you're spending over $25K/month, making significant hiring decisions, or talking to investors — you need CFO-level financial management." },
+    { q: "How is this different from an accountant or bookkeeper?", a: "Bookkeepers record what happened. A CFO helps you plan what should happen. We do both — our CFO advisory layer handles strategy, modeling, and investor readiness, while our finance operations layer can handle your accounting." },
+    { q: "Do you support QuickBooks, Xero, and Zoho Books?", a: "Yes, all three. We can also work with other accounting systems and can also help you migrate to the right tool if you're not already on one of these platforms." },
+    { q: "Do you work with international startups?", a: "Yes. We provide fractional CFO service for startups across the US, UK, Canada, Australia, and other markets. For accounting services, we currently support India and US markets." },
+    { q: "How long does onboarding take?", a: "Most clients are fully onboarded in 1 week. We will start with system integration and historical data cleanup.  We will deliver your first financial dashboard and baseline model." },
+    { q: "Can I start with just the free assessment?", a: "Absolutely. The Runway Assessment is no-obligation. You'll leave with a clear picture of your finances and a recommended plan — whether or not you become a client." },
   ];
   return (
-    <section id="faq" style={{ padding: "100px 24px", background: "white" }}>
+    <section id="faq" style={{ padding: "70px 24px", background: "white" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
         <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ textAlign: "center", marginBottom: "56px" }}>
           <p className="section-label" style={{ marginBottom: "12px" }}>FAQ</p>
@@ -1394,7 +1392,7 @@ function FinalCTA() {
   const [ref, vis] = useInView();
   return (
     <section style={{
-      padding: "120px 24px",
+      padding: "80px 24px",
       background: "#FAFAF8",
       borderTop: "1px solid #E8E8E0",
     }}>
@@ -1412,8 +1410,8 @@ function FinalCTA() {
         <p style={{ fontSize: "18px", color: "#6B6B60", lineHeight: 1.65, marginBottom: "36px" }}>
           Know your runway. Make smarter decisions.<br />Impress investors. Your CFO is waiting.
         </p>
-        <a href="mailto:hello@foundercopilot.in?subject=Free Audit" className="btn-accent" style={{ fontSize: "16px", padding: "14px 30px" }}>
-          Book Free Runway Audit <Ico path={P.arrow} size={16} color="white" />
+        <a href="https://calendar.app.google/FLimpD3jFy2GXVSA8" className="btn-accent" style={{ fontSize: "16px", padding: "14px 30px" }}>
+          Book Free Assessment <Ico path={P.arrow} size={16} color="white" />
         </a>
         <p style={{ fontSize: "13px", color: "#A8A89A", marginTop: "16px" }}>
           Free. No commitment. 60 minutes that could change your trajectory.
