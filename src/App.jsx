@@ -240,6 +240,33 @@ const CSS = `
     to   { transform: translateX(-50%); }
   }
 
+  .desktop-only-btn { display: inline-flex; }
+  .mobile-label { display: none; }
+  .desktop-label { display: inline; }
+
+  @media (max-width: 768px) {
+    .desktop-only-btn { display: none !important; }
+    .mobile-label { display: inline; }
+    .desktop-label { display: none; }
+
+    .btn-primary {
+      font-size: 12px !important;
+      padding: 9px 14px !important;
+    }
+
+    .btn-ghost {
+      display: none !important;
+    }
+
+    .logo-text {
+      font-size: 16px !important;
+    }
+
+    .desktop-nav {
+      display: none !important;
+    }
+  }
+  
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
@@ -685,16 +712,14 @@ function Navbar() {
         height: "60px",
       }}>
         {/* Logo */}
-        <a href="#" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: "8px",
-            background: "#0D0D0B",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Ico path={P.trend} size={14} color="white" />
-          </div>
-          <span className="logo-text">Founder Copilot<span className="logo-dot">.</span></span>
-        </a>
+        <a href="#" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "10px" }}>
+  <img
+    src="/logo.png"
+    alt="Founder Copilot"
+    style={{ height: "32px", width: "auto", display: "block" }}
+  />
+  <span className="logo-text">Founder Copilot<span className="logo-dot">.</span></span>
+</a>
 
         {/* Desktop nav */}
         <div style={{ display: "flex", gap: "28px", alignItems: "center" }} className="desktop-nav">
@@ -710,10 +735,13 @@ function Navbar() {
         </div>
 
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <a href="#audit" className="btn-primary" style={{ fontSize: "13px" }}>
-            Book Free Assessment <Ico path={P.arrow} size={13} color="white" />
-          </a>
-        </div>
+  
+  <a href="#audit" className="btn-primary" style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
+    <span className="desktop-label">Book Free Assessment</span>
+    <span className="mobile-label">Free Assessment</span>
+    <Ico path={P.arrow} size={13} color="white" />
+  </a>
+</div>
       </div>
     </nav>
   );
