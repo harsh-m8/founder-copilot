@@ -755,7 +755,7 @@ function Hero() {
           lineHeight: 1.65,
           animation: "fadeUp 0.7s ease forwards 0.2s", opacity: 0,
         }}>
-          As a founder, your focus needs to be on your Customer + Product. <br/>Not Excel models - leave that to your fractional CFO. <br/> Make better decisions with real-time financials, investor-ready models, and strategic guidance.
+          As a founder, your focus needs to be on your Customer + Product. <br/>Not Excel models - leave that to your fractional CFO. <br/> Make better decisions with financial clarity and strategic guidance.
         </p>
 
         {/* CTAs */}
@@ -1189,6 +1189,144 @@ function Pricing() {
   );
 }
 
+// ─── AboutMe ───────────────────────────────────────────────────────
+function AboutMe() {
+  const [ref, vis] = useInView();
+  return (
+    <section style={{ padding: "70px 24px", background: "white" }}>
+      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+        <div
+          ref={ref}
+          className={`inview${vis ? " visible" : ""}`}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "0.5fr 1.6fr",
+            gap: "80px",
+            alignItems: "center",
+          }}
+        >
+          {/* Left — Photo + credentials */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "24px" }}>
+            {/* Photo placeholder */}
+            <div style={{
+              width: "100%",
+              
+              borderRadius: "16px",
+              background: "linear-gradient(135deg, #F5F5F2, #EBEBEB)",
+              border: "1px solid #E8E8E0",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px",
+              position: "relative",
+              overflow: "hidden",
+            }}>
+              {/* Placeholder avatar circle */}
+              <img
+  src="/harsha.jpg"
+  alt="Your Name"
+  style={{
+    width: "100%",
+    borderRadius: "16px",
+    objectFit: "cover",
+    objectPosition: "top",
+    border: "1px solid #E8E8E0",
+  }}
+/>
+              <p style={{ fontSize: "12px", color: "#A8A89A" }}>Harsha Mogili</p>
+
+              {/* Decorative corner accent */}
+              <div style={{
+                position: "absolute", bottom: 0, right: 0,
+                width: 120, height: 120,
+                background: "radial-gradient(circle at bottom right, rgba(232,87,42,0.08), transparent 70%)",
+              }} />
+            </div>
+
+            {/* Credential badges 
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+              {[
+                { icon: P.shield,   label: "CPA / CA Qualified" },
+                { icon: P.trending, label: "10+ Years in Finance" },
+                { icon: P.rocket,   label: "20+ Startups Advised" },
+              ].map((c, i) => (
+                <div key={i} style={{
+                  display: "flex", alignItems: "center", gap: "10px",
+                  background: "#FAFAF8", border: "1px solid #E8E8E0",
+                  borderRadius: "10px", padding: "10px 14px",
+                }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: "8px",
+                    background: "#FDF1EC", border: "1px solid #F5C4AF",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <Ico path={c.icon} size={14} color="#E8572A" />
+                  </div>
+                  <span style={{ fontSize: "13px", fontWeight: 600, color: "#0D0D0B" }}>{c.label}</span>
+                </div>
+              ))}
+            </div>*/}
+          </div>
+
+          {/* Right — Bio content */}
+          <div>
+            <p className="section-label" style={{ marginBottom: "12px" }}>About Me</p>
+            <h2 className="display-headline" style={{ fontSize: "clamp(32px, 4vw, 48px)", marginBottom: "24px" }}>
+              The CFO behind{" "}
+              <span className="italic-serif" style={{ color: "#A8A89A" }}>Founder Copilot.</span>
+            </h2>
+
+            {/* Replace these paragraphs with your own bio */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "32px" }}>
+              {[
+                "Hi, I'm Harsha Mogili.",
+                "Here's the short version: started with a CS degree from University of Washington, and built software at Microsoft. Then got an MBA in Finance from Cornell, spent time at BCG (Boston Consulting Group) advising the C-suite of Fortune 500 companies, and spent the last seven years working on AI Strategy at one of the world's largest financial institutions - JPMorgan.",
+                "The longer version is that none of those roles ever pulled me away from my real passion — startups and the founders building them. I've spent a ton of time on the side advising founders, and the decisions that actually determine whether a company makes it.  I'm building Founder Copilot as it enables me to continue working with founders.  Founders I've worked with have mentioned: they wished they had someone like me in their corner - and now they can.",
+              ].map((para, i) => (
+                <p key={i} style={{ fontSize: "16px", color: "#6B6B60", lineHeight: 1.75 }}>
+                  {para}
+                </p>
+              ))}
+            </div>
+
+            {/* Stats row 
+            <div style={{
+              display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "1px", background: "#E8E8E0",
+              borderRadius: "14px", overflow: "hidden",
+              marginBottom: "32px",
+            }}>
+              {[
+                { n: "$120M+", label: "Fundraising advised" },
+                { n: "20+",    label: "Startups served" },
+                { n: "10 yrs", label: "Finance experience" },
+              ].map((s, i) => (
+                <div key={i} style={{
+                  background: "#FAFAF8", padding: "20px 24px",
+                }}>
+                  <div style={{
+                    fontSize: "24px", fontWeight: 800, color: "#0D0D0B",
+                    fontFamily: "Geist, sans-serif", letterSpacing: "-0.03em",
+                    marginBottom: "4px",
+                  }}>{s.n}</div>
+                  <div style={{ fontSize: "12px", color: "#A8A89A" }}>{s.label}</div>
+                </div>
+              ))}
+            </div>*/}
+
+            {/* CTA 
+            <a href="#audit" className="btn-accent" style={{ fontSize: "14px" }}>
+              Book a Free Call With Me <Ico path={P.arrow} size={14} color="white" />
+            </a>*/}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Testimonials ─────────────────────────────────────────────────────────────
 function Testimonials() {
   const [ref, vis] = useInView();
@@ -1207,7 +1345,7 @@ function Testimonials() {
     },
   ];
   return (
-    <section style={{ padding: "70px 24px", background: "white" }}>
+    <section style={{ padding: "0px 24px 70px 24px", background: "white" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
         <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ textAlign: "center", marginBottom: "56px" }}>
           <p className="section-label" style={{ marginBottom: "12px" }}>Founder Stories</p>
@@ -1463,6 +1601,7 @@ export default function App() {
       <Services />
       <HowItWorks />
       <Pricing />
+      <AboutMe />
       <Testimonials />
       <AuditOffer />
       <FAQ />
