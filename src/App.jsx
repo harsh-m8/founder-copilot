@@ -723,7 +723,7 @@ function Navbar() {
 
         {/* Desktop nav */}
         <div style={{ display: "flex", gap: "28px", alignItems: "center" }} className="desktop-nav">
-          {["Services", "Pricing", "How It Works", "FAQ"].map(l => (
+          {["Services", "Platform", "Pricing", "How It Works", "FAQ"].map(l => (
             <a key={l} href={`#${l.toLowerCase().replace(/ /g, "-")}`} style={{
               fontSize: "14px", fontWeight: 500, color: "#6B6B60",
               textDecoration: "none", transition: "color 0.15s",
@@ -756,7 +756,7 @@ function Hero() {
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "28px" }}>
           <div className="tag" style={{ animation: "fadeIn 0.5s ease forwards" }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E8572A" }} className="animate-pulse-dot" />
-            Fractional CFO + Services for Startups
+            Fractional CFO Services · Autonomous Finance Platform
           </div>
         </div>
 
@@ -768,23 +768,40 @@ function Hero() {
           margin: "0 auto 24px",
           animation: "fadeUp 0.7s ease forwards 0.1s", opacity: 0,
         }}>
-          CFO-level Strategy,{" "}
-          <span className="italic-serif" style={{ color: "#6B6B60" }}></span>
-          <br />{" "}
+          Expert CFO Guidance.{" "}
+          <span className="italic-serif" style={{ color: "#6B6B60" }}>Autonomous Finance.</span>
+          <br />
           <span style={{
             background: "linear-gradient(135deg, #E8572A, #F5854A)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-          }}>without the CFO Salary</span>
+          }}>Built for Founders.</span>
         </h1>
 
         <p style={{
           textAlign: "center", fontSize: "18px", color: "#6B6B60",
-          maxWidth: "600px", margin: "0 auto 36px",
+          maxWidth: "600px", margin: "0 auto 24px",
           lineHeight: 1.65,
           animation: "fadeUp 0.7s ease forwards 0.2s", opacity: 0,
         }}>
-          As a founder, your focus needs to be on your Customer + Product. <br/>Not Excel models - leave that to your fractional CFO. <br/> Make better decisions with financial clarity and strategic guidance.
+          Founder Copilot combines the strategic thinking of a world-class CFO with an autonomous finance platform that runs your numbers, flags risks, and keeps you investor-ready — without the full-time hire.
         </p>
+
+        <div style={{
+          display: "flex", flexDirection: "column", alignItems: "center", gap: "10px",
+          marginBottom: "36px",
+          animation: "fadeUp 0.7s ease forwards 0.25s", opacity: 0,
+        }}>
+          {[
+            "A seasoned CFO advising your strategy, hiring, and fundraising",
+            "An autonomous platform that monitors your finances 24/7",
+            "Always know your runway, burn, and investor readiness score",
+          ].map((b, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Ico path={P.check} size={14} color="#1A9E5F" sw={2.5} />
+              <span style={{ fontSize: "15px", color: "#6B6B60" }}>{b}</span>
+            </div>
+          ))}
+        </div>
 
         {/* CTAs */}
         <div style={{
@@ -953,22 +970,19 @@ function Solution() {
         <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ textAlign: "center", marginBottom: "60px" }}>
           <p className="section-label" style={{ marginBottom: "12px", color: "#6B6B60" }}>The Solution</p>
           <h2 className="display-headline" style={{ fontSize: "clamp(36px, 5vw, 60px)", color: "white" }}>
-            Your Startup{" "}
+            Two ways we make you{" "}
             <span className="italic-serif" style={{
               background: "linear-gradient(135deg, #E8572A, #F5854A)",
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            }}>Finance Copilot</span>
+            }}>unstoppable.</span>
           </h2>
-          <p style={{ fontSize: "17px", color: "#6B6B60", maxWidth: "520px", margin: "16px auto 0", lineHeight: 1.65 }}>
-            A seasoned CFO in your corner so you can build with financial clarity with focus on your customer and product.
-          </p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
           {[
             
-            { icon: P.brain, title: "CFO Strategy", body: "Monthly advisory, hiring frameworks, board prep, and on-demand decision support whenever you need it.", accent: "#2563EB" },
-            { icon: P.rocket, title: "Fundraising Ready", body: "Investor-grade models, KPI dashboards, and due diligence data rooms built to close your next round.", accent: "#1A9E5F" },
-            { icon: P.zap, title: "Finance Stack (Coming soon)", body: "Connected systems, real-time dashboards, automated month-end reporting. No more spreadsheet chaos.", accent: "#E8572A" },
+            { icon: P.brain, title: "Fractional CFO Services", body: "A seasoned CFO in your corner for monthly strategy sessions, fundraising preparation, financial modeling, and board reporting. Senior-level thinking without the senior-level salary.", accent: "#2563EB" },
+            { icon: P.zap, title: "Autonomous Finance Platform", body: "A self-running finance system connected to your accounting stack. It monitors your burn, updates your runway, flags anomalies, and keeps your metrics investor-ready — automatically.", accent: "#E8572A" },
+            { icon: P.shield, title: "Always investor-ready", body: "Whether you are raising next month or next year, your financials, KPIs, and data room are always up to date and ready to share.", accent: "#1A9E5F" },
           ].map((f, i) => (
             <div key={i}
               className={`card-hover inview${vis ? " visible" : ""}`}
@@ -998,58 +1012,119 @@ function Solution() {
 // ─── Services ─────────────────────────────────────────────────────────────────
 function Services() {
   const [ref, vis] = useInView();
-  const services = [
+  const cfoServices = [
     { icon: P.brain,   title: "Strategic CFO Advisory",  body: "Monthly strategy sessions, budget reviews, and on-demand support. Your CFO when you need one.", tag: "Advisory" },
     { icon: P.model,   title: "Financial Modeling",      body: "12–36 month forecasts with scenario planning, hiring models, and unit economics analysis.", tag: "Modeling" },
     { icon: P.rocket,  title: "Fundraising Preparation", body: "Investor-ready models, KPI dashboards, and data room prep. Show up to VC meetings with confidence.", tag: "Fundraising" },
+  ];
+  const platformServices = [
+    { icon: P.chart,   title: "Finance Command Center",  body: "Real-time dashboard synced to QuickBooks, Xero, and Zoho Books. Track cash, burn, revenue, and margins — live.", tag: "Core" },
     { icon: P.cog,     title: "Finance Operations",      body: "Month-end close, financial reporting, bookkeeping oversight, and budget management. Clean books, every month.", tag: "Ops" },
-    { icon: P.chart,   title: "Finance Command Center (Coming soon)",  body: "Real-time dashboard synced to QuickBooks, Xero, and Zoho Books. Track cash, burn, revenue, and margins — live.", tag: "Core" },
   ];
   return (
     <section id="services" style={{ padding: "70px 24px", background: "#FAFAF8" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
         <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ marginBottom: "56px" }}>
-          <p className="section-label" style={{ marginBottom: "12px" }}>What We Do</p>
+          <p className="section-label" style={{ marginBottom: "12px" }}>Our Services</p>
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
             <h2 className="display-headline" style={{ fontSize: "clamp(32px, 4.5vw, 50px)" }}>
-              Everything your CFO<br className="hide-mobile" />{" "}
-              <span className="italic-serif" style={{ color: "#A8A89A" }}>should be doing.</span>
+              CFO expertise and autonomous finance —{" "}
+              <span className="italic-serif" style={{ color: "#A8A89A" }}>under one roof.</span>
             </h2>
-            <p style={{ fontSize: "15px", color: "#6B6B60", maxWidth: "320px", lineHeight: 1.6 }}>
-              CFO function along with your choice of services at startup-friendly prices.
-            </p>
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "14px" }}>
-          {services.map((s, i) => (
+        {[
+          { label: "Fractional CFO Services", items: cfoServices },
+          { label: "Autonomous Finance Platform", items: platformServices },
+        ].map((group, gi) => (
+          <div key={gi} style={{ marginBottom: gi === 0 ? "32px" : 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#A8A89A", whiteSpace: "nowrap" }}>{group.label}</span>
+              <div style={{ flex: 1, height: "1px", background: "#E8E8E0" }} />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "14px" }}>
+              {group.items.map((s, i) => (
+                <div key={i}
+                  className={`card-hover inview${vis ? " visible" : ""}`}
+                  style={{
+                    background: "white", border: "1px solid #E8E8E0", borderRadius: "14px",
+                    padding: "28px", display: "flex", gap: "20px",
+                    animationDelay: `${(gi * 3 + i) * 60}ms`,
+                  }}
+                >
+                  <div style={{
+                    width: 40, height: 40, borderRadius: "10px",
+                    background: "#F5F5F2", border: "1px solid #E8E8E0",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <Ico path={s.icon} size={18} color="#0D0D0B" />
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                      <h3 style={{ fontSize: "15px", fontWeight: 600, color: "#0D0D0B" }}>{s.title}</h3>
+                      <span style={{
+                        fontSize: "10px", fontWeight: 700, color: "#A8A89A",
+                        background: "#F0F0EB", padding: "1px 7px", borderRadius: "4px",
+                        letterSpacing: "0.05em",
+                      }}>{s.tag}</span>
+                    </div>
+                    <p style={{ fontSize: "13px", color: "#6B6B60", lineHeight: 1.65 }}>{s.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── Platform Features ────────────────────────────────────────────────────────
+function PlatformFeatures() {
+  const [ref, vis] = useInView();
+  const features = [
+    { icon: P.zap,      title: "Autonomous Monitoring",    body: "The platform watches your financials 24/7 and flags anomalies before they become problems." },
+    { icon: P.chart,    title: "Live Financial Dashboard", body: "Real-time metrics for cash, burn, revenue, and margins — always current, never stale." },
+    { icon: P.trend,    title: "Runway Forecasting",       body: "Continuously updated runway projections factoring in all committed spend and growth scenarios." },
+    { icon: P.shield,   title: "Anomaly Detection",        body: "Automatic alerts when spending patterns, margins, or cash flow deviate from plan." },
+    { icon: P.rocket,   title: "Investor-Ready Reporting", body: "Board packs, KPI dashboards, and investor updates generated automatically each month." },
+    { icon: P.calendar, title: "Month-End Automation",     body: "Automated reconciliation, categorisation, and close process — no more chasing your bookkeeper." },
+  ];
+  return (
+    <section id="platform" style={{ padding: "70px 24px", background: "white" }}>
+      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+        <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ textAlign: "center", marginBottom: "56px" }}>
+          <p className="section-label" style={{ marginBottom: "12px" }}>Autonomous Finance Platform</p>
+          <h2 className="display-headline" style={{ fontSize: "clamp(32px, 4.5vw, 52px)" }}>
+            Your finances run themselves.{" "}
+            <span className="italic-serif" style={{ color: "#A8A89A" }}>You run your company.</span>
+          </h2>
+          <p style={{ fontSize: "16px", color: "#6B6B60", marginTop: "14px", maxWidth: "600px", margin: "14px auto 0", lineHeight: 1.65 }}>
+            The platform connects to your accounting software and autonomously monitors, reports, and alerts — so nothing slips through the cracks.
+          </p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
+          {features.map((f, i) => (
             <div key={i}
               className={`card-hover inview${vis ? " visible" : ""}`}
               style={{
-                background: "white", border: "1px solid #E8E8E0", borderRadius: "14px",
-                padding: "28px", display: "flex", gap: "20px",
-                animationDelay: `${i * 60}ms`,
+                background: "#FAFAF8", border: "1px solid #E8E8E0", borderRadius: "14px",
+                padding: "28px", animationDelay: `${i * 60}ms`,
               }}
             >
               <div style={{
-                width: 40, height: 40, borderRadius: "10px",
-                background: "#F5F5F2", border: "1px solid #E8E8E0",
+                width: 38, height: 38, borderRadius: "9px",
+                background: "#FDF1EC", border: "1px solid #F5C4AF",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
+                marginBottom: "16px",
               }}>
-                <Ico path={s.icon} size={18} color="#0D0D0B" />
+                <Ico path={f.icon} size={17} color="#E8572A" />
               </div>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                  <h3 style={{ fontSize: "15px", fontWeight: 600, color: "#0D0D0B" }}>{s.title}</h3>
-                  <span style={{
-                    fontSize: "10px", fontWeight: 700, color: "#A8A89A",
-                    background: "#F0F0EB", padding: "1px 7px", borderRadius: "4px",
-                    letterSpacing: "0.05em",
-                  }}>{s.tag}</span>
-                </div>
-                <p style={{ fontSize: "13px", color: "#6B6B60", lineHeight: 1.65 }}>{s.body}</p>
-              </div>
+              <h3 style={{ fontSize: "15px", fontWeight: 600, color: "#0D0D0B", marginBottom: "8px" }}>{f.title}</h3>
+              <p style={{ fontSize: "13px", color: "#6B6B60", lineHeight: 1.65 }}>{f.body}</p>
             </div>
           ))}
         </div>
@@ -1062,9 +1137,9 @@ function Services() {
 function HowItWorks() {
   const [ref, vis] = useInView();
   const steps = [
-        { n: "01", icon: P.plug,  title: "Connect Your Systems",         body: "We integrate with QuickBooks, Xero, or Zoho Books. Your financial data syncs automatically, in real time." },
-        { n: "02", icon: P.brain, title: "Ongoing CFO Guidance",         body: "Monthly strategy sessions, model updates, budget tracking, and on-demand support all year round." },
-        { n: "03", icon: P.chart, title: "Build Your Command Center (Coming soon)",    body: "We clean your books, build your financial model, and set up your live dashboard. Done in 2 weeks." },
+        { n: "01", icon: P.plug,  title: "Connect your finance stack",    body: "We integrate with QuickBooks, Xero, or Zoho Books. The autonomous platform begins monitoring your finances immediately." },
+        { n: "02", icon: P.brain, title: "We build your command center",  body: "Your CFO sets up your financial model, cleans your books, and configures your autonomous dashboard — ready in 2 weeks." },
+        { n: "03", icon: P.chart, title: "CFO guidance plus autopilot",   body: "Monthly CFO strategy sessions keep you on track while the platform runs your numbers, flags risks, and keeps you investor-ready around the clock." },
   ];
   return (
     <section id="how-it-works" style={{ padding: "70px 24px", background: "white" }}>
@@ -1119,7 +1194,7 @@ function Pricing() {
       name: "Starter",
       price: "$1,500",
       period: "/month",
-      desc: "For early-stage startups getting finances in order.",
+      desc: "Autonomous finance platform plus essential CFO guidance for early-stage startups.",
       popular: false,
       features: ["Finance dashboard setup", "QuickBooks / Xero / Zoho sync", "Monthly financial reporting", "Burn & runway tracking", "1× monthly advisory call", "Email support"],
     },
@@ -1127,15 +1202,15 @@ function Pricing() {
       name: "Growth",
       price: "$3,500",
       period: "/month",
-      desc: "For scaling startups preparing to hire, raise, or expand.",
+      desc: "Full CFO services plus the complete autonomous finance platform for scaling startups.",
       popular: true,
       features: ["Everything in Starter", "Full financial model (12–36 mo)", "Scenario & sensitivity analysis", "Hiring & spend decision support", "Board reporting package", "2× advisory calls + Slack access", "Budget vs. actuals"],
     },
     {
-      name: "Fundraising",
+      name: "Fundraising Sprint",
       price: "$6,500",
       period: "/one-time",
-      desc: "Investor-grade materials to close your next round.",
+      desc: "Intensive CFO engagement plus investor-ready materials to close your next round.",
       popular: false,
       features: ["Investor-ready financial model", "3-statement model + cap table", "KPI investor dashboard", "Due diligence data room prep", "Use of proceeds analysis", "2× fundraising strategy sessions", "Post-close handoff"],
     },
@@ -1146,8 +1221,8 @@ function Pricing() {
         <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ textAlign: "center", marginBottom: "56px" }}>
           <p className="section-label" style={{ marginBottom: "12px" }}>Pricing</p>
           <h2 className="display-headline" style={{ fontSize: "clamp(32px, 4.5vw, 52px)" }}>
-            CFO-quality.{" "}
-            <span className="italic-serif" style={{ color: "#A8A89A" }}>Startup-friendly pricing.</span>
+            Simple pricing for CFO services{" "}
+            <span className="italic-serif" style={{ color: "#A8A89A" }}>and the platform.</span>
           </h2>
           <p style={{ fontSize: "16px", color: "#6B6B60", marginTop: "14px" }}>
             A full-time CFO costs $250K+/year. Our plans start at startup-friendly prices.
@@ -1501,6 +1576,8 @@ function FAQ() {
   const [open, setOpen] = useState(null);
   const [ref, vis] = useInView();
   const faqs = [
+    { q: "What is an Autonomous Finance Platform?", a: "It is a connected finance system that integrates with your accounting software and automatically monitors your burn rate, updates your runway projections, detects anomalies, and generates investor-ready reports — without you having to manually pull numbers or build spreadsheets. Think of it as a financial co-pilot running in the background at all times." },
+    { q: "Do I need both the CFO service and the platform?", a: "Most clients take both because they complement each other perfectly — the platform gives you real-time financial visibility while the CFO service gives you the strategic thinking to act on it. That said, we can discuss what combination makes sense for your stage." },
     { q: "When should a startup hire a fractional CFO?", a: "Once you're generating revenue, have raised funding, or are actively planning to. If you're spending over $25K/month, making significant hiring decisions, or talking to investors — you need CFO-level financial management." },
     { q: "How is this different from an accountant or bookkeeper?", a: "Bookkeepers record what happened. A CFO helps you plan what should happen. We do both — our CFO advisory layer handles strategy, modeling, and investor readiness, while our finance operations layer can handle your accounting." },
     { q: "Do you support QuickBooks, Xero, and Zoho Books?", a: "Yes, all three. We can also work with other accounting systems and can also help you migrate to the right tool if you're not already on one of these platforms." },
@@ -1567,14 +1644,14 @@ function FinalCTA() {
         style={{ maxWidth: "640px", margin: "0 auto", textAlign: "center" }}
       >
         <h2 className="display-headline" style={{ fontSize: "clamp(44px, 7vw, 80px)", marginBottom: "20px" }}>
-          Stop Guessing<br />
+          Expert CFO.<br />
           <span style={{
             background: "linear-gradient(135deg, #E8572A, #F5854A)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-          }}>Your Numbers.</span>
+          }}>Autonomous Finance.</span>
         </h2>
         <p style={{ fontSize: "18px", color: "#6B6B60", lineHeight: 1.65, marginBottom: "36px" }}>
-          Know your runway. Make smarter decisions.<br />Impress investors. Your CFO is waiting.
+          Everything a world-class finance function should do — at a fraction of the cost and none of the overhead.
         </p>
         <a href="https://calendar.app.google/FLimpD3jFy2GXVSA8" className="btn-accent" style={{ fontSize: "16px", padding: "14px 30px" }}>
           Book Free Assessment <Ico path={P.arrow} size={16} color="white" />
@@ -1627,6 +1704,7 @@ export default function App() {
       <Problem />
       <Solution />
       <Services />
+      <PlatformFeatures />
       <HowItWorks />
       <Pricing />
       <AboutMe />
