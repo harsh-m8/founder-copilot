@@ -977,30 +977,68 @@ function Solution() {
             }}>unstoppable.</span>
           </h2>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "20px" }}>
           {[
-            
-            { icon: P.brain, title: "Fractional CFO Services", body: "A seasoned CFO in your corner for monthly strategy sessions, fundraising preparation, financial modeling, and board reporting. Senior-level thinking without the senior-level salary.", accent: "#2563EB" },
-            { icon: P.zap, title: "Autonomous Finance Platform", body: "A self-running finance system connected to your accounting stack. It monitors your burn, updates your runway, flags anomalies, and keeps your metrics investor-ready — automatically.", accent: "#E8572A" },
-            { icon: P.shield, title: "Always investor-ready", body: "Whether you are raising next month or next year, your financials, KPIs, and data room are always up to date and ready to share.", accent: "#1A9E5F" },
-          ].map((f, i) => (
+            {
+              badge: "SERVICE",
+              badgeColor: "#60A5FA",
+              badgeBg: "rgba(37,99,235,0.15)",
+              borderColor: "rgba(37,99,235,0.2)",
+              bgColor: "rgba(37,99,235,0.06)",
+              icon: P.brain,
+              iconColor: "#60A5FA",
+              title: "Fractional CFO Service",
+              body: "A seasoned CFO in your corner for monthly strategy sessions, fundraising preparation, financial modeling, and board reporting. Senior-level thinking without the senior-level salary.",
+              points: ["Monthly advisory sessions", "Financial modeling & forecasting", "Fundraising preparation", "Board reporting & investor updates"],
+            },
+            {
+              badge: "PRODUCT",
+              badgeColor: "#F5854A",
+              badgeBg: "rgba(232,87,42,0.15)",
+              borderColor: "rgba(232,87,42,0.2)",
+              bgColor: "rgba(232,87,42,0.06)",
+              icon: P.zap,
+              iconColor: "#F5854A",
+              title: "Autonomous Finance Platform",
+              body: "Six AI-powered modules that run your finance function around the clock — connected to your accounting software from day one. AR, AP, treasury, reporting, controls, and a live executive dashboard.",
+              points: ["Real-time executive dashboard", "Accounts receivable & payable automation", "Treasury management & cash forecasting", "Autonomous reporting & financial controls"],
+            },
+          ].map((item, i) => (
             <div key={i}
               className={`card-hover inview${vis ? " visible" : ""}`}
               style={{
-                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "14px", padding: "28px",
-                animationDelay: `${i * 80}ms`,
+                background: item.bgColor,
+                border: `1px solid ${item.borderColor}`,
+                borderRadius: "16px", padding: "36px",
+                animationDelay: `${i * 120}ms`,
               }}
             >
-              <div style={{
-                width: 38, height: 38, borderRadius: "9px",
-                background: f.accent + "22", border: `1px solid ${f.accent}44`,
-                display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "18px",
-              }}>
-                <Ico path={f.icon} size={17} color={f.accent} />
+              <div style={{ marginBottom: "20px" }}>
+                <span style={{
+                  fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em",
+                  textTransform: "uppercase", color: item.badgeColor,
+                  background: item.badgeBg, padding: "3px 10px",
+                  borderRadius: "4px", display: "inline-block",
+                }}>{item.badge}</span>
               </div>
-              <h3 style={{ fontSize: "16px", fontWeight: 600, color: "white", marginBottom: "8px" }}>{f.title}</h3>
-              <p style={{ fontSize: "14px", color: "#6B6B60", lineHeight: 1.65 }}>{f.body}</p>
+              <div style={{
+                width: 44, height: 44, borderRadius: "11px",
+                background: item.badgeBg, border: `1px solid ${item.borderColor}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                marginBottom: "20px",
+              }}>
+                <Ico path={item.icon} size={20} color={item.iconColor} />
+              </div>
+              <h3 style={{ fontSize: "22px", fontWeight: 400, color: "white", marginBottom: "12px", fontFamily: "Instrument Serif, serif", letterSpacing: "-0.02em" }}>{item.title}</h3>
+              <p style={{ fontSize: "14px", color: "#6B6B60", lineHeight: 1.7, marginBottom: "22px" }}>{item.body}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
+                {item.points.map((pt, j) => (
+                  <div key={j} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Ico path={P.check} size={13} color={item.iconColor} sw={2.5} />
+                    <span style={{ fontSize: "13px", color: "#A8A89A" }}>{pt}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
@@ -1013,70 +1051,62 @@ function Solution() {
 function Services() {
   const [ref, vis] = useInView();
   const cfoServices = [
-    { icon: P.brain,   title: "Strategic CFO Advisory",  body: "Monthly strategy sessions, budget reviews, and on-demand support. Your CFO when you need one.", tag: "Advisory" },
-    { icon: P.model,   title: "Financial Modeling",      body: "12–36 month forecasts with scenario planning, hiring models, and unit economics analysis.", tag: "Modeling" },
-    { icon: P.rocket,  title: "Fundraising Preparation", body: "Investor-ready models, KPI dashboards, and data room prep. Show up to VC meetings with confidence.", tag: "Fundraising" },
-  ];
-  const platformServices = [
-    { icon: P.chart,   title: "Finance Command Center",  body: "Real-time dashboard synced to QuickBooks, Xero, and Zoho Books. Track cash, burn, revenue, and margins — live.", tag: "Core" },
-    { icon: P.cog,     title: "Finance Operations",      body: "Month-end close, financial reporting, bookkeeping oversight, and budget management. Clean books, every month.", tag: "Ops" },
+    { icon: P.brain,   title: "Strategic CFO Advisory",  body: "Monthly strategy sessions, budget reviews, and on-demand support. Your CFO in your corner whenever you need one.", tag: "Advisory" },
+    { icon: P.model,   title: "Financial Modeling",      body: "12–36 month forecasts with scenario planning, hiring models, and unit economics analysis built to withstand investor scrutiny.", tag: "Modeling" },
+    { icon: P.rocket,  title: "Fundraising Preparation", body: "Investor-ready models, KPI dashboards, and data room preparation. Show up to VC meetings with complete confidence.", tag: "Fundraising" },
   ];
   return (
     <section id="services" style={{ padding: "70px 24px", background: "#FAFAF8" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
         <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ marginBottom: "56px" }}>
-          <p className="section-label" style={{ marginBottom: "12px" }}>Our Services</p>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
-            <h2 className="display-headline" style={{ fontSize: "clamp(32px, 4.5vw, 50px)" }}>
-              CFO expertise and autonomous finance —{" "}
-              <span className="italic-serif" style={{ color: "#A8A89A" }}>under one roof.</span>
-            </h2>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+            <span style={{
+              fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em",
+              textTransform: "uppercase", color: "#2563EB",
+              background: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.15)",
+              padding: "3px 10px", borderRadius: "4px",
+            }}>SERVICE</span>
           </div>
+          <h2 className="display-headline" style={{ fontSize: "clamp(32px, 4.5vw, 50px)" }}>
+            Fractional CFO Service
+          </h2>
+          <p style={{ fontSize: "16px", color: "#6B6B60", marginTop: "14px", maxWidth: "560px", lineHeight: 1.65 }}>
+            A seasoned CFO embedded in your business — strategy, modeling, and fundraising support at a fraction of the full-time cost.
+          </p>
         </div>
 
-        {[
-          { label: "Fractional CFO Services", items: cfoServices },
-          { label: "Autonomous Finance Platform", items: platformServices },
-        ].map((group, gi) => (
-          <div key={gi} style={{ marginBottom: gi === 0 ? "32px" : 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
-              <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#A8A89A", whiteSpace: "nowrap" }}>{group.label}</span>
-              <div style={{ flex: 1, height: "1px", background: "#E8E8E0" }} />
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "14px" }}>
-              {group.items.map((s, i) => (
-                <div key={i}
-                  className={`card-hover inview${vis ? " visible" : ""}`}
-                  style={{
-                    background: "white", border: "1px solid #E8E8E0", borderRadius: "14px",
-                    padding: "28px", display: "flex", gap: "20px",
-                    animationDelay: `${(gi * 3 + i) * 60}ms`,
-                  }}
-                >
-                  <div style={{
-                    width: 40, height: 40, borderRadius: "10px",
-                    background: "#F5F5F2", border: "1px solid #E8E8E0",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    <Ico path={s.icon} size={18} color="#0D0D0B" />
-                  </div>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                      <h3 style={{ fontSize: "15px", fontWeight: 600, color: "#0D0D0B" }}>{s.title}</h3>
-                      <span style={{
-                        fontSize: "10px", fontWeight: 700, color: "#A8A89A",
-                        background: "#F0F0EB", padding: "1px 7px", borderRadius: "4px",
-                        letterSpacing: "0.05em",
-                      }}>{s.tag}</span>
-                    </div>
-                    <p style={{ fontSize: "13px", color: "#6B6B60", lineHeight: 1.65 }}>{s.body}</p>
-                  </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "14px" }}>
+          {cfoServices.map((s, i) => (
+            <div key={i}
+              className={`card-hover inview${vis ? " visible" : ""}`}
+              style={{
+                background: "white", border: "1px solid #E8E8E0", borderRadius: "14px",
+                padding: "28px", display: "flex", gap: "20px",
+                animationDelay: `${i * 60}ms`,
+              }}
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: "10px",
+                background: "rgba(37,99,235,0.07)", border: "1px solid rgba(37,99,235,0.15)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                <Ico path={s.icon} size={18} color="#2563EB" />
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                  <h3 style={{ fontSize: "15px", fontWeight: 600, color: "#0D0D0B" }}>{s.title}</h3>
+                  <span style={{
+                    fontSize: "10px", fontWeight: 700, color: "#2563EB",
+                    background: "rgba(37,99,235,0.08)", padding: "1px 7px", borderRadius: "4px",
+                    letterSpacing: "0.05em",
+                  }}>{s.tag}</span>
                 </div>
-              ))}
+                <p style={{ fontSize: "13px", color: "#6B6B60", lineHeight: 1.65 }}>{s.body}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -1085,29 +1115,107 @@ function Services() {
 // ─── Platform Features ────────────────────────────────────────────────────────
 function PlatformFeatures() {
   const [ref, vis] = useInView();
-  const features = [
-    { icon: P.zap,      title: "Autonomous Monitoring",    body: "The platform watches your financials 24/7 and flags anomalies before they become problems." },
-    { icon: P.chart,    title: "Live Financial Dashboard", body: "Real-time metrics for cash, burn, revenue, and margins — always current, never stale." },
-    { icon: P.trend,    title: "Runway Forecasting",       body: "Continuously updated runway projections factoring in all committed spend and growth scenarios." },
-    { icon: P.shield,   title: "Anomaly Detection",        body: "Automatic alerts when spending patterns, margins, or cash flow deviate from plan." },
-    { icon: P.rocket,   title: "Investor-Ready Reporting", body: "Board packs, KPI dashboards, and investor updates generated automatically each month." },
-    { icon: P.calendar, title: "Month-End Automation",     body: "Automated reconciliation, categorisation, and close process — no more chasing your bookkeeper." },
+  const capabilities = [
+    {
+      icon: P.chart,
+      accent: "#2563EB",
+      title: "Real-Time Executive Dashboard",
+      intro: "Get a single view of your company's financial health.",
+      bullets: [
+        "Revenue performance against plan",
+        "Cash position across all accounts",
+        "Burn rate and trend analysis",
+        "Margins and liquidity forecasts",
+      ],
+      result: "Every critical metric in one place, updated in real time.",
+    },
+    {
+      icon: P.dollar,
+      accent: "#1A9E5F",
+      title: "Accounts Receivable",
+      intro: "Get paid faster without chasing customers.",
+      bullets: [
+        "Intelligent invoice reminders sent automatically",
+        "Auto-match remittances to invoices accurately",
+        "Customer risk signals tracked to reduce bad debt",
+        "Payment delays flagged before they become problems",
+      ],
+      result: "Faster collections and healthier cash flow.",
+    },
+    {
+      icon: P.cog,
+      accent: "#D97706",
+      title: "Accounts Payable",
+      intro: "Pay vendors at the optimal time, not the earliest time.",
+      bullets: [
+        "Automated invoice approval based on company policies",
+        "Smart payment timing to maximise DPO and liquidity",
+        "Vendor management dashboard with full bill visibility",
+        "Centralised audit trail for every approval decision",
+      ],
+      result: "Stronger vendor relationships while protecting your cash.",
+    },
+    {
+      icon: P.shield,
+      accent: "#7C3AED",
+      title: "Treasury Management",
+      intro: "Always know your cash position.",
+      bullets: [
+        "Real-time cash visibility across all bank accounts",
+        "AI forecasting that detects liquidity gaps early",
+        "Automated alerts when balances cross risk thresholds",
+        "Actionable recommendations to maintain optimal liquidity",
+      ],
+      result: "No more cash surprises.",
+    },
+    {
+      icon: P.model,
+      accent: "#E8572A",
+      title: "Autonomous Financial Reporting",
+      intro: "Close your books without the chaos.",
+      bullets: [
+        "Automated transaction classification and reconciliation",
+        "Continuous financial statement updates",
+        "AI-assisted month-end close",
+        "Executive-ready financial dashboards",
+      ],
+      result: "Faster reporting and fewer errors.",
+    },
+    {
+      icon: P.eye,
+      accent: "#DC2626",
+      title: "Continuous Financial Controls",
+      intro: "AI agents monitoring every transaction.",
+      bullets: [
+        "Expense claims verified against company policies",
+        "Duplicate payments and unusual spend patterns detected",
+        "Suspicious vendor activity identified early",
+        "AI contract review to catch vendor overbilling",
+      ],
+      result: "Enterprise-grade financial controls without a large finance team.",
+    },
   ];
   return (
-    <section id="platform" style={{ padding: "70px 24px", background: "white" }}>
+    <section id="platform" style={{ padding: "80px 24px", background: "white" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ textAlign: "center", marginBottom: "56px" }}>
-          <p className="section-label" style={{ marginBottom: "12px" }}>Autonomous Finance Platform</p>
+        <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ marginBottom: "64px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+            <span style={{
+              fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em",
+              textTransform: "uppercase", color: "#E8572A",
+              background: "#FDF1EC", border: "1px solid #F5C4AF",
+              padding: "3px 10px", borderRadius: "4px",
+            }}>PRODUCT</span>
+          </div>
           <h2 className="display-headline" style={{ fontSize: "clamp(32px, 4.5vw, 52px)" }}>
-            Your finances run themselves.{" "}
-            <span className="italic-serif" style={{ color: "#A8A89A" }}>You run your company.</span>
+            Autonomous Finance Platform
           </h2>
-          <p style={{ fontSize: "16px", color: "#6B6B60", marginTop: "14px", maxWidth: "600px", margin: "14px auto 0", lineHeight: 1.65 }}>
-            The platform connects to your accounting software and autonomously monitors, reports, and alerts — so nothing slips through the cracks.
+          <p style={{ fontSize: "16px", color: "#6B6B60", marginTop: "14px", maxWidth: "580px", lineHeight: 1.65 }}>
+            Six AI-powered modules that run your finance function around the clock — connected to your accounting software from day one.
           </p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
-          {features.map((f, i) => (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "16px" }}>
+          {capabilities.map((c, i) => (
             <div key={i}
               className={`card-hover inview${vis ? " visible" : ""}`}
               style={{
@@ -1115,16 +1223,35 @@ function PlatformFeatures() {
                 padding: "28px", animationDelay: `${i * 60}ms`,
               }}
             >
-              <div style={{
-                width: 38, height: 38, borderRadius: "9px",
-                background: "#FDF1EC", border: "1px solid #F5C4AF",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                marginBottom: "16px",
-              }}>
-                <Ico path={f.icon} size={17} color="#E8572A" />
+              <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: "10px",
+                  background: c.accent + "14", border: `1px solid ${c.accent}30`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <Ico path={c.icon} size={18} color={c.accent} />
+                </div>
+                <h3 style={{ fontSize: "15px", fontWeight: 600, color: "#0D0D0B" }}>{c.title}</h3>
               </div>
-              <h3 style={{ fontSize: "15px", fontWeight: 600, color: "#0D0D0B", marginBottom: "8px" }}>{f.title}</h3>
-              <p style={{ fontSize: "13px", color: "#6B6B60", lineHeight: 1.65 }}>{f.body}</p>
+              <p style={{ fontSize: "13px", color: "#6B6B60", marginBottom: "14px", lineHeight: 1.55 }}>{c.intro}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "7px", marginBottom: "18px" }}>
+                {c.bullets.map((b, j) => (
+                  <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                    <span style={{ flexShrink: 0, marginTop: "1px" }}>
+                      <Ico path={P.check} size={13} color={c.accent} sw={2.5} />
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#6B6B60", lineHeight: 1.55 }}>{b}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{
+                display: "flex", alignItems: "center", gap: "6px",
+                paddingTop: "14px", borderTop: "1px solid #E8E8E0",
+              }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "#1A9E5F", whiteSpace: "nowrap" }}>Result:</span>
+                <span style={{ fontSize: "12px", color: "#6B6B60" }}>{c.result}</span>
+              </div>
             </div>
           ))}
         </div>
