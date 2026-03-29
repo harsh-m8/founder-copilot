@@ -1835,7 +1835,7 @@ export default function App() {
       <HowItWorks />
       <Pricing />
       <AboutMe />
-      <Testimonials />
+      {/* <Testimonials /> */}
       <AuditOffer />
       <FAQ />
       <FinalCTA />
