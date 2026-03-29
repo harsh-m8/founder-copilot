@@ -756,7 +756,7 @@ function Hero() {
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "28px" }}>
           <div className="tag" style={{ animation: "fadeIn 0.5s ease forwards" }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E8572A" }} className="animate-pulse-dot" />
-            Fractional CFO Services · Autonomous Finance Platform
+            Intelligent Finance Platform + Fractional CFO Services
           </div>
         </div>
 
@@ -768,13 +768,13 @@ function Hero() {
           margin: "0 auto 24px",
           animation: "fadeUp 0.7s ease forwards 0.1s", opacity: 0,
         }}>
-          Expert CFO Guidance.{" "}
-          <span className="italic-serif" style={{ color: "#6B6B60" }}>Autonomous Finance.</span>
+          Intelligent Finance Platform{" "}
+          <span className="italic-serif" style={{ color: "#6B6B60" }}> + </span>
           <br />
           <span style={{
             background: "linear-gradient(135deg, #E8572A, #F5854A)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-          }}>Built for Founders.</span>
+          }}>Fractional CFO Services</span>
         </h1>
 
         <p style={{
@@ -783,7 +783,6 @@ function Hero() {
           lineHeight: 1.65,
           animation: "fadeUp 0.7s ease forwards 0.2s", opacity: 0,
         }}>
-          Founder Copilot combines the strategic thinking of a world-class CFO with an autonomous finance platform that runs your numbers, flags risks, and keeps you investor-ready — without the full-time hire.
         </p>
 
         <div style={{
@@ -792,9 +791,10 @@ function Hero() {
           animation: "fadeUp 0.7s ease forwards 0.25s", opacity: 0,
         }}>
           {[
-            "A seasoned CFO advising your strategy, hiring, and fundraising",
-            "An autonomous platform that monitors your finances 24/7",
-            "Always know your runway, burn, and investor readiness score",
+            "Intelligent Finance platform that optimizes your finances so you can make informed decisions with real-time insights",
+            "Our AI modules connect to your existing Finance stack with all the guardrails and controls you need",
+            "Always stay investor/board-ready with key metrics (burn, runway, margins, etc.) and scenario analyses",
+            "Get a seasoned CFO for your strategy, hiring, and fundraising, without the CFO-level salary",
           ].map((b, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <Ico path={P.check} size={14} color="#1A9E5F" sw={2.5} />
@@ -885,8 +885,8 @@ function Problem() {
   const [ref, vis] = useInView();
   const pains = [
     { icon: P.model, title: "Outdated financial model", body: "Your 12–36 month model needs updates, scenarios re-assessed. No board-ready reporting." },
-    { icon: P.eye, title: "Flying blind on runway", body: "You think you have 14 months but taxes, committed spend, and payroll might say otherwise." },
-    { icon: P.chart, title: "Messy books, no clarity", body: "Reconciliations needed. No clean numbers. No confidence walking into investor meetings." },
+    { icon: P.eye, title: "Flying blind on runway", body: "You think you have 14 months but pending reconciliations, taxes, and committed spend might say otherwise." },
+    { icon: P.chart, title: "No Financial Controls", body: "You've been busy with your product that you haven't put in place financial controls to plug leaks." },
     { icon: P.users, title: "Investors catch you off guard", body: "CAC payback, net revenue retention, burn multiple — questions that expose you are not on top of things." },
     { icon: P.dollar, title: "Hiring decisions feel like bets", body: "You want to make 3 more hires but can't model the runway impact with any confidence." },
     
@@ -999,8 +999,8 @@ function Solution() {
               bgColor: "rgba(232,87,42,0.06)",
               icon: P.zap,
               iconColor: "#F5854A",
-              title: "Autonomous Finance Platform",
-              body: "Six AI-powered modules that run your finance function around the clock — connected to your accounting software from day one. AR, AP, treasury, reporting, controls, and a live executive dashboard.",
+              title: "Intelligent Finance Platform",
+              body: "AI-powered modules that run your finance function around the clock — connected to your accounting software from day one. AR, AP, treasury, reporting, controls, and a live executive dashboard.",
               points: ["Real-time executive dashboard", "Accounts receivable & payable automation", "Treasury management & cash forecasting", "Autonomous reporting & financial controls"],
             },
           ].map((item, i) => (
@@ -1208,10 +1208,10 @@ function PlatformFeatures() {
             }}>PRODUCT</span>
           </div>
           <h2 className="display-headline" style={{ fontSize: "clamp(32px, 4.5vw, 52px)" }}>
-            Autonomous Finance Platform
+            Intelligent Finance Platform
           </h2>
           <p style={{ fontSize: "16px", color: "#6B6B60", marginTop: "14px", maxWidth: "580px", lineHeight: 1.65 }}>
-            Six AI-powered modules that run your finance function around the clock — connected to your accounting software from day one.
+            AI-powered modules that run your finance function around the clock — connected to your accounting software from day one.
           </p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "16px" }}>
@@ -1265,8 +1265,8 @@ function HowItWorks() {
   const [ref, vis] = useInView();
   const steps = [
         { n: "01", icon: P.plug,  title: "Connect your finance stack",    body: "We integrate with QuickBooks, Xero, or Zoho Books. The autonomous platform begins monitoring your finances immediately." },
-        { n: "02", icon: P.brain, title: "We build your command center",  body: "Your CFO sets up your financial model, cleans your books, and configures your autonomous dashboard — ready in 2 weeks." },
-        { n: "03", icon: P.chart, title: "CFO guidance plus autopilot",   body: "Monthly CFO strategy sessions keep you on track while the platform runs your numbers, flags risks, and keeps you investor-ready around the clock." },
+        { n: "02", icon: P.brain, title: "Executive dashboard gets built",  body: "We update your financial model, your books, do scenario planning, and build your dashboard — ready in 2 weeks." },
+        { n: "03", icon: P.chart, title: "CFO guidance plus autopilot",   body: "Monthly CFO strategy sessions keep you on track while the platform runs your numbers, flags risks, and keeps you investor-ready." },
   ];
   return (
     <section id="how-it-works" style={{ padding: "70px 24px", background: "white" }}>
@@ -1275,7 +1275,7 @@ function HowItWorks() {
           <p className="section-label" style={{ marginBottom: "12px" }}>The Process</p>
           <h2 className="display-headline" style={{ fontSize: "clamp(32px, 4.5vw, 52px)" }}>
             Up and running{" "}
-            <span className="italic-serif" style={{ color: "#A8A89A" }}>in 1 week.</span>
+            <span className="italic-serif" style={{ color: "#A8A89A" }}>in 2 weeks.</span>
           </h2>
         </div>
 
@@ -1348,7 +1348,7 @@ function Pricing() {
         <div ref={ref} className={`inview${vis ? " visible" : ""}`} style={{ textAlign: "center", marginBottom: "56px" }}>
           <p className="section-label" style={{ marginBottom: "12px" }}>Pricing</p>
           <h2 className="display-headline" style={{ fontSize: "clamp(32px, 4.5vw, 52px)" }}>
-            Simple pricing for CFO services{" "}
+            Flexible pricing for CFO services{" "}
             <span className="italic-serif" style={{ color: "#A8A89A" }}>and the platform.</span>
           </h2>
           <p style={{ fontSize: "16px", color: "#6B6B60", marginTop: "14px" }}>
@@ -1512,8 +1512,8 @@ function AboutMe() {
             <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "32px" }}>
               {[
                 "Hi, I'm Harsha Mogili.",
-                "Here's the short version: started with a CS degree from University of Washington, and built software at Microsoft. Then got an MBA in Finance from Cornell, spent time at BCG (Boston Consulting Group) advising the C-suite of Fortune 500 companies, and spent the last seven years working on AI Strategy at one of the world's largest financial institutions - JPMorgan.",
-                "The longer version is that none of those roles ever pulled me away from my real passion — startups and the founders building them. I've spent a ton of time on the side advising founders, and the decisions that actually determine whether a company makes it.  I'm building Founder Copilot as it enables me to continue working with founders.  Founders I've worked with have mentioned: they wished they had someone like me in their corner - and now they can.",
+                "Here's the short version: started with a CS degree from University of Washington, and built software as an Engineer at Microsoft. Then got an MBA in Finance from Cornell, spent couple years at BCG (Boston Consulting Group) advising the C-suite of Fortune 500 companies, and spent the last seven years working on AI Strategy at one of the world's largest financial institutions - JPMorgan.",
+                "The longer version is that none of those roles ever pulled me away from my real passion — startups and the founders building them. I've spent time on the side advising founders, and the decisions that actually determine whether a company makes it.  I'm building Founder Copilot as it enables me to continue working with founders.  Founders I've worked with have mentioned they wished they had someone like me in their corner - and now they can.",
               ].map((para, i) => (
                 <p key={i} style={{ fontSize: "16px", color: "#6B6B60", lineHeight: 1.75 }}>
                   {para}
@@ -1703,13 +1703,13 @@ function FAQ() {
   const [open, setOpen] = useState(null);
   const [ref, vis] = useInView();
   const faqs = [
-    { q: "What is an Autonomous Finance Platform?", a: "It is a connected finance system that integrates with your accounting software and automatically monitors your burn rate, updates your runway projections, detects anomalies, and generates investor-ready reports — without you having to manually pull numbers or build spreadsheets. Think of it as a financial co-pilot running in the background at all times." },
+    { q: "What is an Intelligent Finance Platform?", a: "It is a connected finance system that integrates with your accounting software and automatically monitors your burn rate, updates your runway projections, detects anomalies, and generates investor-ready reports — without you having to manually pull numbers or build spreadsheets. Think of it as a financial co-pilot running in the background at all times." },
     { q: "Do I need both the CFO service and the platform?", a: "Most clients take both because they complement each other perfectly — the platform gives you real-time financial visibility while the CFO service gives you the strategic thinking to act on it. That said, we can discuss what combination makes sense for your stage." },
     { q: "When should a startup hire a fractional CFO?", a: "Once you're generating revenue, have raised funding, or are actively planning to. If you're spending over $25K/month, making significant hiring decisions, or talking to investors — you need CFO-level financial management." },
     { q: "How is this different from an accountant or bookkeeper?", a: "Bookkeepers record what happened. A CFO helps you plan what should happen. We do both — our CFO advisory layer handles strategy, modeling, and investor readiness, while our finance operations layer can handle your accounting." },
     { q: "Do you support QuickBooks, Xero, and Zoho Books?", a: "Yes, all three. We can also work with other accounting systems and can also help you migrate to the right tool if you're not already on one of these platforms." },
     { q: "Do you work with international startups?", a: "Yes. We provide fractional CFO service for startups across the US, UK, Canada, Australia, and other markets. For accounting services, we currently support India and US markets." },
-    { q: "How long does onboarding take?", a: "Most clients are fully onboarded in 1 week. We will start with system integration and historical data cleanup.  We will deliver your first financial dashboard and baseline model." },
+    { q: "How long does onboarding take?", a: "Most clients are fully onboarded in 1 or 2 weeks. We will start with system integration and historical data cleanup.  We will deliver your first financial dashboard and baseline model." },
     { q: "Can I start with just the free assessment?", a: "Absolutely. The Runway Assessment is no-obligation. You'll leave with a clear picture of your finances and a recommended plan — whether or not you become a client." },
   ];
   return (
@@ -1771,11 +1771,11 @@ function FinalCTA() {
         style={{ maxWidth: "640px", margin: "0 auto", textAlign: "center" }}
       >
         <h2 className="display-headline" style={{ fontSize: "clamp(44px, 7vw, 80px)", marginBottom: "20px" }}>
-          Expert CFO.<br />
+          Expert CFO Services.<br />
           <span style={{
             background: "linear-gradient(135deg, #E8572A, #F5854A)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-          }}>Autonomous Finance.</span>
+          }}>Intelligent Finance Platform.</span>
         </h2>
         <p style={{ fontSize: "18px", color: "#6B6B60", lineHeight: 1.65, marginBottom: "36px" }}>
           Everything a world-class finance function should do — at a fraction of the cost and none of the overhead.
