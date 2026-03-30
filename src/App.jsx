@@ -735,7 +735,9 @@ function Navbar() {
         </div>
 
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-  
+  <a href="/dashboard" className="desktop-nav btn-ghost" style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
+    Dashboard
+  </a>
   <a href="#audit" className="btn-primary" style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
     <span className="desktop-label">Book Free Assessment</span>
     <span className="mobile-label">Free Assessment</span>
