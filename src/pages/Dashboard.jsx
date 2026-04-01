@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const COMPANY = "Acme Corp";
@@ -202,6 +204,14 @@ const NAV = [
 ];
 
 function Sidebar({ active, onChange }) {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleSignOut() {
+    await signOut();
+    navigate("/login", { replace: true });
+  }
+
   return (
     <aside style={{
       width: 220, flexShrink: 0,
@@ -264,8 +274,22 @@ function Sidebar({ active, onChange }) {
       </nav>
 
       {/* Footer */}
-      <div style={{ padding: "16px 20px", borderTop: "1px solid #E8E8E0" }}>
-        <a href="/" style={{ fontSize: "12px", color: "#A8A89A", textDecoration: "none" }}>← Back to website</a>
+      <div style={{ padding: "16px 20px", borderTop: "1px solid #E8E8E0", display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div style={{ fontSize: "12px", color: "#A8A89A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {user?.email}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <a href="/" style={{ fontSize: "12px", color: "#A8A89A", textDecoration: "none" }}>← Website</a>
+          <button
+            onClick={handleSignOut}
+            style={{
+              fontSize: "12px", color: "#DC2626", background: "none",
+              border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit",
+            }}
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     </aside>
   );

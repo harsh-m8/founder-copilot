@@ -735,7 +735,7 @@ function Navbar() {
         </div>
 
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-  <a href="/dashboard" className="desktop-nav btn-ghost" style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
+  <a href="/login" className="desktop-nav btn-ghost" style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
     Dashboard
   </a>
   <a href="#audit" className="btn-primary" style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
