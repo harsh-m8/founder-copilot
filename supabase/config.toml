@@ -1,0 +1,28 @@
+# Supabase local development config
+# See https://supabase.com/docs/guides/local-development
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/dashboard"]
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = false
+enable_confirmations = false
+
+[functions.accounting-oauth-init]
+verify_jwt = false  # We verify the JWT manually
+
+[functions.accounting-oauth-callback]
+verify_jwt = false  # This is an OAuth redirect — no JWT header
+
+[functions.accounting-sync]
+verify_jwt = false  # We verify the JWT manually
