@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useOrg } from "../context/OrgContext";
 import { useAccountingData } from "../hooks/useAccountingData";
+import { useEmailInvoices } from "../hooks/useEmailInvoices";
 import { ROLE_LABELS, ROLE_DESCRIPTIONS, assignableRoles } from "../lib/permissions";
 
 // ─── Mock / fallback data ─────────────────────────────────────────────────────
@@ -154,6 +155,7 @@ const NAV_MAIN = [
   { id: "expenses",  label: "Expenses"            },
   { id: "ar",        label: "Accounts Receivable" },
   { id: "ap",        label: "Accounts Payable"    },
+  { id: "inbox",     label: "Inbox Invoices"      },
   { id: "reporting", label: "Reporting"           },
   { id: "controls",  label: "Controls"            },
 ];
@@ -431,6 +433,143 @@ function buildLiveAlerts(data) {
   return alerts;
 }
 
+// ─── Inbox Invoices panel ─────────────────────────────────────────────────────
+const CONFIDENCE_STYLE = {
+  high:   { bg: "#EAF7F0", color: "#1A9E5F", border: "#A7F3D0" },
+  medium: { bg: "#FEF3C7", color: "#D97706", border: "#FDE68A" },
+  low:    { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA" },
+};
+
+function InboxPanel({ emailConnections, invoices, syncing, onSync, onGoToIntegrations, error }) {
+  const { can } = useOrg();
+  const hasConnection = emailConnections.length > 0;
+  const canSync       = can("integrations:sync");
+
+  if (!hasConnection) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 400, gap: "12px", textAlign: "center" }}>
+        <div style={{ width: 48, height: 48, borderRadius: "12px", background: "#F0F0EC", border: "1px solid #E8E8E0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6B60" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+          </svg>
+        </div>
+        <div style={{ fontSize: "18px", fontWeight: 700, color: "#0D0D0B" }}>No email account connected</div>
+        <div style={{ fontSize: "14px", color: "#6B6B60", maxWidth: 360, lineHeight: 1.6 }}>
+          Connect a Gmail or Outlook account to let the AI agent scan your inbox for invoices.
+        </div>
+        <button onClick={onGoToIntegrations} style={{ marginTop: "8px", fontSize: "13px", fontWeight: 600, padding: "9px 20px", background: "#E8572A", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}>
+          Connect email
+        </button>
+      </div>
+    );
+  }
+
+  const unreviewed = invoices.filter((i) => !i.reviewed).length;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* Header + sync controls */}
+      <div style={{ background: "white", border: "1px solid #E8E8E0", borderRadius: "12px", padding: "20px 24px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontSize: "15px", fontWeight: 700, color: "#0D0D0B", marginBottom: "4px" }}>Inbox Invoices</div>
+            <p style={{ margin: 0, fontSize: "13px", color: "#6B6B60", lineHeight: 1.6 }}>
+              Claude reads your inbox and extracts invoice details automatically.
+              {unreviewed > 0 && <span style={{ color: "#D97706", fontWeight: 600 }}> {unreviewed} unreviewed.</span>}
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", flexShrink: 0 }}>
+            {emailConnections.map((conn) => (
+              canSync && (
+                <button
+                  key={conn.provider}
+                  onClick={() => onSync(conn.provider)}
+                  disabled={syncing}
+                  style={{ fontSize: "12px", fontWeight: 600, padding: "7px 14px", background: "#EAF7F0", color: "#1A9E5F", border: "1px solid #A7F3D0", borderRadius: "8px", cursor: syncing ? "not-allowed" : "pointer", opacity: syncing ? 0.6 : 1, display: "flex", alignItems: "center", gap: "6px" }}
+                >
+                  {syncing ? "Scanning…" : `Scan ${conn.provider === "gmail" ? "Gmail" : "Outlook"}`}
+                  {conn.last_synced_at && !syncing && (
+                    <span style={{ fontSize: "10px", fontWeight: 400, color: "#6B6B60" }}>· last {fmtDate(conn.last_synced_at)}</span>
+                  )}
+                </button>
+              )
+            ))}
+          </div>
+        </div>
+        {error && (
+          <div style={{ marginTop: "12px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", padding: "10px 12px", fontSize: "13px", color: "#991B1B" }}>{error}</div>
+        )}
+      </div>
+
+      {/* Invoice table */}
+      {invoices.length === 0 ? (
+        <div style={{ background: "white", border: "1px solid #E8E8E0", borderRadius: "12px", padding: "48px 24px", textAlign: "center" }}>
+          <div style={{ fontSize: "14px", color: "#A8A89A" }}>No invoices extracted yet. Click Scan to process your inbox.</div>
+        </div>
+      ) : (
+        <div style={{ background: "white", border: "1px solid #E8E8E0", borderRadius: "12px", overflow: "hidden" }}>
+          {/* Table header */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px 110px 110px 90px 80px", gap: "0", borderBottom: "1px solid #E8E8E0", padding: "10px 16px", background: "#FAFAF8" }}>
+            {["Vendor / Subject", "Invoice #", "Date", "Due", "Amount", "Confidence", ""].map((h) => (
+              <div key={h} style={{ fontSize: "11px", fontWeight: 700, color: "#A8A89A", textTransform: "uppercase", letterSpacing: "0.07em" }}>{h}</div>
+            ))}
+          </div>
+          {invoices.map((inv, i) => {
+            const cs = CONFIDENCE_STYLE[inv.extraction_confidence] ?? CONFIDENCE_STYLE.low;
+            return (
+              <div
+                key={inv.id}
+                style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px 110px 110px 90px 80px", gap: "0", padding: "12px 16px", borderBottom: i < invoices.length - 1 ? "1px solid #F4F4F0" : "none", background: inv.reviewed ? "transparent" : "#FFFBF5", alignItems: "center" }}
+              >
+                {/* Vendor / subject */}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: "#0D0D0B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {inv.vendor_name ?? <span style={{ color: "#A8A89A", fontWeight: 400 }}>{inv.raw_email_from?.split("<")[0]?.trim() || "Unknown vendor"}</span>}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#A8A89A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: "2px" }}>
+                    {inv.raw_email_subject}
+                  </div>
+                </div>
+                {/* Invoice # */}
+                <div style={{ fontSize: "12px", color: "#6B6B60", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {inv.invoice_number ?? "—"}
+                </div>
+                {/* Invoice date */}
+                <div style={{ fontSize: "12px", color: "#6B6B60" }}>
+                  {inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "—"}
+                </div>
+                {/* Due date */}
+                <div style={{ fontSize: "12px", color: inv.due_date && new Date(inv.due_date) < new Date() ? "#DC2626" : "#6B6B60", fontWeight: inv.due_date && new Date(inv.due_date) < new Date() ? 600 : 400 }}>
+                  {inv.due_date ? new Date(inv.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "—"}
+                </div>
+                {/* Amount */}
+                <div style={{ fontSize: "13px", fontWeight: 600, color: "#0D0D0B" }}>
+                  {inv.amount != null ? `${inv.currency ?? "$"} ${Number(inv.amount).toLocaleString()}` : "—"}
+                </div>
+                {/* Confidence */}
+                <div>
+                  <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "10px", background: cs.bg, color: cs.color, border: `1px solid ${cs.border}` }}>
+                    {inv.extraction_confidence ?? "?"}
+                  </span>
+                </div>
+                {/* Reviewed toggle */}
+                <div>
+                  <button
+                    onClick={() => inv._markReviewed && inv._markReviewed(inv.id, !inv.reviewed)}
+                    style={{ fontSize: "11px", fontWeight: 600, padding: "3px 8px", background: inv.reviewed ? "#F0F0EC" : "#EFF6FF", color: inv.reviewed ? "#A8A89A" : "#3B82F6", border: `1px solid ${inv.reviewed ? "#E8E8E0" : "#BFDBFE"}`, borderRadius: "6px", cursor: "pointer" }}
+                  >
+                    {inv.reviewed ? "Reviewed" : "Review"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Integrations panel ───────────────────────────────────────────────────────
 const PROVIDERS = [
   {
@@ -459,7 +598,34 @@ const PROVIDERS = [
   },
 ];
 
-function IntegrationsPanel({ connections, syncing, onConnect, onConnectDirect, onSync, onDisconnect }) {
+const EMAIL_PROVIDERS = [
+  {
+    id: "gmail", name: "Gmail",
+    description: "Scan your Gmail inbox for invoices and receipts. Claude reads and extracts structured data automatically.",
+    logo: (
+      <svg width="32" height="32" viewBox="0 0 32 32">
+        <rect width="32" height="32" rx="8" fill="#fff" stroke="#E8E8E0"/>
+        <path d="M6 10.5v11A1.5 1.5 0 0 0 7.5 23h17A1.5 1.5 0 0 0 26 21.5v-11l-10 7-10-7Z" fill="#EA4335"/>
+        <path d="M6 10.5l10 7 10-7" fill="none" stroke="#fff" strokeWidth="1"/>
+        <rect x="6" y="10" width="20" height="12" rx="1.5" fill="none" stroke="#E8E8E0" strokeWidth="0.5"/>
+      </svg>
+    ),
+  },
+  {
+    id: "outlook", name: "Outlook / Microsoft 365",
+    description: "Connect your Outlook or Microsoft 365 mailbox to extract invoice data from your email.",
+    logo: (
+      <svg width="32" height="32" viewBox="0 0 32 32">
+        <rect width="32" height="32" rx="8" fill="#0078D4"/>
+        <path d="M9 10h8a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1z" fill="#fff" opacity=".9"/>
+        <path d="M17 12l6 3v6l-6 3V12z" fill="#fff" opacity=".7"/>
+        <path d="M17 12l6 3-6 3v-6z" fill="#fff"/>
+      </svg>
+    ),
+  },
+];
+
+function IntegrationsPanel({ connections, syncing, onConnect, onConnectDirect, onSync, onDisconnect, emailConnections, emailSyncing, onConnectEmail, onSyncEmail, onDisconnectEmail }) {
   const { can } = useOrg();
   const canManage = can("integrations:manage");
   const canSync   = can("integrations:sync");
@@ -553,6 +719,75 @@ function IntegrationsPanel({ connections, syncing, onConnect, onConnectDirect, o
           </ol>
         </div>
       )}
+
+      {/* ── Email connections section ── */}
+      <div style={{ background: "white", border: "1px solid #E8E8E0", borderRadius: "12px", padding: "24px" }}>
+        <div style={{ fontSize: "15px", fontWeight: 700, color: "#0D0D0B", marginBottom: "8px" }}>Email Connections</div>
+        <p style={{ fontSize: "13px", color: "#6B6B60", lineHeight: 1.7, margin: "0 0 20px" }}>
+          Connect a Gmail or Outlook account to let the AI agent scan your inbox for invoices.
+          View extracted invoices in the <strong>Inbox Invoices</strong> section.
+          {!canManage && <span style={{ color: "#D97706" }}> You need admin access to connect or disconnect accounts.</span>}
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {EMAIL_PROVIDERS.map((p) => {
+            const conn        = (emailConnections ?? []).find((c) => c.provider === p.id);
+            const isConnected = !!conn;
+            return (
+              <div key={p.id} style={{ border: `1px solid ${isConnected ? "#A7F3D0" : "#E8E8E0"}`, borderRadius: "10px", padding: "16px 20px", display: "flex", alignItems: "center", gap: "16px" }}>
+                <div style={{ flexShrink: 0 }}>{p.logo}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
+                    <span style={{ fontSize: "14px", fontWeight: 700, color: "#0D0D0B" }}>{p.name}</span>
+                    {isConnected && <span style={{ fontSize: "11px", background: "#EAF7F0", color: "#1A9E5F", border: "1px solid #A7F3D0", borderRadius: "10px", padding: "1px 8px", fontWeight: 600 }}>Connected</span>}
+                  </div>
+                  <p style={{ fontSize: "12px", color: "#6B6B60", margin: 0, lineHeight: 1.5 }}>{p.description}</p>
+                  {isConnected && (
+                    <p style={{ fontSize: "11px", color: "#A8A89A", margin: "5px 0 0" }}>
+                      {conn.email_address && <><strong>{conn.email_address}</strong> · </>}
+                      Connected {fmtDate(conn.connected_at)}
+                      {conn.last_synced_at && <> · Last scanned {fmtDate(conn.last_synced_at)}</>}
+                    </p>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                  {isConnected ? (
+                    <>
+                      {canSync && (
+                        <button onClick={() => onSyncEmail(p.id)} disabled={emailSyncing} style={{ fontSize: "12px", fontWeight: 600, padding: "7px 14px", background: "#EAF7F0", color: "#1A9E5F", border: "1px solid #A7F3D0", borderRadius: "8px", cursor: emailSyncing ? "not-allowed" : "pointer", opacity: emailSyncing ? 0.6 : 1 }}>
+                          {emailSyncing ? "Scanning…" : "Scan Now"}
+                        </button>
+                      )}
+                      {canManage && (
+                        <button onClick={() => onDisconnectEmail(p.id)} style={{ fontSize: "12px", fontWeight: 600, padding: "7px 14px", background: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA", borderRadius: "8px", cursor: "pointer" }}>
+                          Disconnect
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    canManage && (
+                      <button onClick={() => onConnectEmail(p.id)} style={{ fontSize: "12px", fontWeight: 600, padding: "7px 16px", background: "#E8572A", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}>
+                        Connect
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {canManage && (
+          <div style={{ marginTop: "16px", padding: "14px 16px", background: "#F8F8F6", border: "1px solid #E8E8E0", borderRadius: "8px" }}>
+            <div style={{ fontSize: "12px", fontWeight: 700, color: "#0D0D0B", marginBottom: "8px" }}>Setup</div>
+            <ol style={{ margin: 0, paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              {[
+                "Gmail: Create a Google Cloud OAuth 2.0 Client ID with the Gmail API enabled. Set redirect URI to [SUPABASE_URL]/functions/v1/email-oauth-callback. Add GMAIL_EMAIL_CLIENT_ID and GMAIL_EMAIL_CLIENT_SECRET as Supabase secrets.",
+                "Outlook: Register an app in Azure AD (App registrations). Add the same redirect URI. Add OUTLOOK_EMAIL_CLIENT_ID and OUTLOOK_EMAIL_CLIENT_SECRET as Supabase secrets.",
+                "Add your Anthropic API key as ANTHROPIC_API_KEY in Supabase secrets.",
+              ].map((s, i) => <li key={i} style={{ fontSize: "12px", color: "#6B6B60", lineHeight: 1.6 }}>{s}</li>)}
+            </ol>
+          </div>
+        )}
+      </div>
 
       {/* ── Tally configure modal ── */}
       {tallyModal && (
@@ -920,16 +1155,26 @@ export default function Dashboard() {
 
   const { org, can, loading: orgLoading } = useOrg();
   const { connections, financialData, snapshot, loading: dataLoading, syncing, error, connect, connectDirect, sync, disconnect } = useAccountingData();
+  const { emailConnections, invoices, loading: emailLoading, syncing: emailSyncing, error: emailError, connectEmail, syncEmail, disconnectEmail, markReviewed } = useEmailInvoices();
 
-  // Handle OAuth callback query params
+  // Inject markReviewed into invoice rows so InboxPanel can call it
+  const invoicesWithActions = invoices.map((inv) => ({ ...inv, _markReviewed: markReviewed }));
+
+  // Handle OAuth callback query params (accounting + email)
   useEffect(() => {
-    const connected = searchParams.get("connected");
-    const err       = searchParams.get("error");
+    const connected      = searchParams.get("connected");
+    const emailConnected = searchParams.get("email_connected");
+    const err            = searchParams.get("error");
+
     if (connected) {
       setToast({ message: `${connected.charAt(0).toUpperCase() + connected.slice(1)} connected! Syncing data…`, type: "success" });
       setActive("integrations");
       setSearchParams({}, { replace: true });
       sync(connected);
+    } else if (emailConnected) {
+      setToast({ message: `${emailConnected === "gmail" ? "Gmail" : "Outlook"} connected! You can now scan your inbox for invoices.`, type: "success" });
+      setActive("integrations");
+      setSearchParams({}, { replace: true });
     } else if (err) {
       setToast({ message: `Connection failed: ${err.replace(/_/g, " ")}`, type: "error" });
       setSearchParams({}, { replace: true });
@@ -938,7 +1183,7 @@ export default function Dashboard() {
 
   function goToIntegrations() { setActive(can("integrations:manage") ? "integrations" : "overview"); }
 
-  const loading = orgLoading || dataLoading;
+  const loading = orgLoading || dataLoading || emailLoading;
 
   const PANELS = {
     overview:     <OverviewPanel financialData={financialData} snapshot={snapshot} onGoToIntegrations={goToIntegrations} />,
@@ -947,9 +1192,10 @@ export default function Dashboard() {
     expenses:     <ComingSoon title="Expense Management"   onGoToIntegrations={goToIntegrations} />,
     ar:           <ComingSoon title="Accounts Receivable"  onGoToIntegrations={goToIntegrations} />,
     ap:           <ComingSoon title="Accounts Payable"     onGoToIntegrations={goToIntegrations} />,
+    inbox:        <InboxPanel emailConnections={emailConnections} invoices={invoicesWithActions} syncing={emailSyncing} onSync={syncEmail} onGoToIntegrations={goToIntegrations} error={emailError} />,
     reporting:    <ComingSoon title="Financial Reporting"  onGoToIntegrations={goToIntegrations} />,
     controls:     <ComingSoon title="Financial Controls"   onGoToIntegrations={goToIntegrations} />,
-    integrations: <IntegrationsPanel connections={connections} syncing={syncing} onConnect={connect} onConnectDirect={connectDirect} onSync={sync} onDisconnect={disconnect} />,
+    integrations: <IntegrationsPanel connections={connections} syncing={syncing} onConnect={connect} onConnectDirect={connectDirect} onSync={sync} onDisconnect={disconnect} emailConnections={emailConnections} emailSyncing={emailSyncing} onConnectEmail={connectEmail} onSyncEmail={syncEmail} onDisconnectEmail={disconnectEmail} />,
     team:         <TeamPanel />,
     settings:     <SettingsPanel />,
   };
