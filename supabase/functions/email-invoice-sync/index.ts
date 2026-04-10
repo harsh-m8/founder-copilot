@@ -41,16 +41,28 @@ interface EmailMessage {
   pdfs:    { name: string; base64: string }[];  // PDF attachments
 }
 
-interface ExtractedInvoice {
-  vendor_name:           string | null;
-  invoice_number:        string | null;
-  invoice_date:          string | null; // YYYY-MM-DD
-  due_date:              string | null; // YYYY-MM-DD
-  amount:                number | null;
-  currency:              string;
-  line_items:            Array<{ description: string; qty?: number; unit_price?: number }> | null;
-  extraction_confidence: "high" | "medium" | "low";
-}
+type ClassifiedEmail =
+  | {
+      type:                "invoice";
+      vendor_name:         string | null;
+      invoice_number:      string | null;
+      invoice_date:        string | null;
+      due_date:            string | null;
+      amount:              number | null;
+      currency:            string | null;
+      line_items:          Array<{ description: string; qty?: number; unit_price?: number }> | null;
+      confidence:          "high" | "medium" | "low";
+    }
+  | {
+      type:                "remittance";
+      payer_name:          string | null;
+      amount_paid:         number | null;
+      payment_date:        string | null;
+      invoice_references:  string[] | null;  // invoice numbers mentioned
+      payment_method:      string | null;
+      confidence:          "high" | "medium" | "low";
+    }
+  | null;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -135,8 +147,8 @@ async function fetchGmailMessages(token: string, since: string | null, max: numb
   const base = "https://gmail.googleapis.com/gmail/v1/users/me";
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Search for likely invoice emails
-  let q = "subject:invoice OR subject:receipt OR subject:bill OR subject:statement OR (has:attachment filename:pdf)";
+  // Search for invoices AND remittances (payment confirmations from customers)
+  let q = "subject:invoice OR subject:receipt OR subject:bill OR subject:statement OR subject:payment OR subject:paid OR subject:remittance OR (has:attachment filename:pdf)";
   if (since) q += ` after:${since}`;
 
   const listRes = await fetch(
@@ -200,6 +212,9 @@ async function fetchOutlookMessages(token: string, since: string | null, max: nu
     "contains(subject,'receipt')",
     "contains(subject,'bill')",
     "contains(subject,'statement')",
+    "contains(subject,'payment')",
+    "contains(subject,'paid')",
+    "contains(subject,'remittance')",
     "hasAttachments eq true",
   ].join(" or ");
 
@@ -252,27 +267,20 @@ async function fetchOutlookMessages(token: string, since: string | null, max: nu
   return messages;
 }
 
-// ── Claude: extract invoice data ──────────────────────────────────────────────
-async function extractInvoiceWithClaude(
+// ── Claude: classify and extract (invoice OR remittance OR null) ──────────────
+async function classifyAndExtract(
   email: EmailMessage,
   apiKey: string,
-): Promise<ExtractedInvoice | null> {
-  // Build the content array: text prompt + optional PDF documents
+): Promise<ClassifiedEmail> {
   const content: unknown[] = [];
 
-  // Include PDF attachments as base64 documents (Claude natively reads PDFs)
   for (const pdf of email.pdfs) {
     content.push({
       type: "document",
-      source: {
-        type:       "base64",
-        media_type: "application/pdf",
-        data:       pdf.base64,
-      },
+      source: { type: "base64", media_type: "application/pdf", data: pdf.base64 },
     });
   }
 
-  // Always include the email body text
   const emailText = [
     `From: ${email.from}`,
     `Subject: ${email.subject}`,
@@ -282,28 +290,24 @@ async function extractInvoiceWithClaude(
 
   content.push({
     type: "text",
-    text: `You are an invoice extraction AI. Analyse the email below${email.pdfs.length ? " and the attached PDF(s)" : ""} and extract invoice data.
+    text: `You are a financial email classifier. Analyse this email${email.pdfs.length ? " and the attached PDF(s)" : ""} and return EXACTLY ONE of these three JSON structures:
 
-Return a single JSON object with these exact keys (use null for any field you cannot determine):
-{
-  "vendor_name": string | null,
-  "invoice_number": string | null,
-  "invoice_date": "YYYY-MM-DD" | null,
-  "due_date": "YYYY-MM-DD" | null,
-  "amount": number | null,
-  "currency": "USD" | "EUR" | "GBP" | "INR" | ... | null,
-  "line_items": [{ "description": string, "qty": number | null, "unit_price": number | null }] | null,
-  "extraction_confidence": "high" | "medium" | "low"
-}
+1. INVOICE — a bill or request for payment sent TO us by a vendor:
+{ "type": "invoice", "vendor_name": string|null, "invoice_number": string|null, "invoice_date": "YYYY-MM-DD"|null, "due_date": "YYYY-MM-DD"|null, "amount": number|null, "currency": string|null, "line_items": [{"description":string,"qty":number|null,"unit_price":number|null}]|null, "confidence": "high"|"medium"|"low" }
 
-Set extraction_confidence to:
-- "high"   if you found a clear invoice/receipt with amount, vendor, and date
-- "medium" if you found some invoice data but key fields are missing
-- "low"    if this email might be an invoice but you're not confident
+2. REMITTANCE — a payment confirmation sent BY our customer TO us (they are telling us they have paid):
+{ "type": "remittance", "payer_name": string|null, "amount_paid": number|null, "payment_date": "YYYY-MM-DD"|null, "invoice_references": ["INV-001",...]|null, "payment_method": string|null, "confidence": "high"|"medium"|"low" }
 
-If this email is NOT an invoice at all (marketing, conversation, notification), return the JSON null (not an object).
+3. NEITHER — marketing, conversation, notification, or anything else:
+null
 
-Return ONLY valid JSON — no markdown, no explanation.
+Key distinction:
+- An INVOICE comes from a vendor asking US to pay THEM.
+- A REMITTANCE comes from a customer telling us THEY have paid US.
+
+confidence: "high" = clear and complete data, "medium" = some fields missing, "low" = uncertain classification.
+
+Return ONLY valid JSON, no markdown, no explanation.
 
 Email:
 ${emailText}`,
@@ -312,31 +316,23 @@ ${emailText}`,
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      "x-api-key":         apiKey,
-      "anthropic-version": "2023-06-01",
-      "content-type":      "application/json",
+      "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json",
     },
     body: JSON.stringify({
-      model:      "claude-opus-4-6",
-      max_tokens: 1024,
-      messages:   [{ role: "user", content }],
+      model: "claude-opus-4-6", max_tokens: 1024,
+      messages: [{ role: "user", content }],
     }),
   });
 
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Claude API error ${res.status}: ${errText}`);
-  }
+  if (!res.ok) throw new Error(`Claude API error ${res.status}: ${await res.text()}`);
 
   const data = await res.json();
   const raw  = data.content?.[0]?.text?.trim() ?? "";
 
   try {
-    const parsed = JSON.parse(raw);
-    if (parsed === null) return null; // Claude determined this is not an invoice
-    return parsed as ExtractedInvoice;
+    return JSON.parse(raw) as ClassifiedEmail;
   } catch {
-    console.warn("Claude returned non-JSON for message", raw.slice(0, 200));
+    console.warn("Claude returned non-JSON:", raw.slice(0, 200));
     return null;
   }
 }
@@ -416,35 +412,57 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Failed to fetch emails from provider" }, 502);
   }
 
-  // Process each email through Claude and upsert results
-  let extracted = 0;
-  let skipped   = 0;
+  // Process each email through Claude — route to invoices or remittances table
+  let invoicesExtracted    = 0;
+  let remittancesExtracted = 0;
+  let skipped              = 0;
 
   for (const email of emails) {
     try {
-      const invoice = await extractInvoiceWithClaude(email, apiKey);
-      if (!invoice) { skipped++; continue; }
+      const result = await classifyAndExtract(email, apiKey);
+      if (!result) { skipped++; continue; }
 
-      await supabase
-        .from("extracted_invoices")
-        .upsert(
-          {
-            org_id,
-            email_message_id:      email.id,
-            vendor_name:           invoice.vendor_name,
-            invoice_number:        invoice.invoice_number,
-            invoice_date:          invoice.invoice_date,
-            due_date:              invoice.due_date,
-            amount:                invoice.amount,
-            currency:              invoice.currency ?? "USD",
-            line_items:            invoice.line_items,
-            raw_email_subject:     email.subject,
-            raw_email_from:        email.from,
-            extraction_confidence: invoice.extraction_confidence,
-          },
-          { onConflict: "org_id,email_message_id" },
-        );
-      extracted++;
+      if (result.type === "invoice") {
+        await supabase
+          .from("extracted_invoices")
+          .upsert(
+            {
+              org_id,
+              email_message_id:      email.id,
+              vendor_name:           result.vendor_name,
+              invoice_number:        result.invoice_number,
+              invoice_date:          result.invoice_date,
+              due_date:              result.due_date,
+              amount:                result.amount,
+              currency:              result.currency ?? "USD",
+              line_items:            result.line_items,
+              raw_email_subject:     email.subject,
+              raw_email_from:        email.from,
+              extraction_confidence: result.confidence,
+            },
+            { onConflict: "org_id,email_message_id" },
+          );
+        invoicesExtracted++;
+      } else if (result.type === "remittance") {
+        await supabase
+          .from("extracted_remittances")
+          .upsert(
+            {
+              org_id,
+              email_message_id:      email.id,
+              payer_name:            result.payer_name,
+              amount_paid:           result.amount_paid,
+              payment_date:          result.payment_date,
+              invoice_references:    result.invoice_references,
+              payment_method:        result.payment_method,
+              raw_email_subject:     email.subject,
+              raw_email_from:        email.from,
+              extraction_confidence: result.confidence,
+            },
+            { onConflict: "org_id,email_message_id" },
+          );
+        remittancesExtracted++;
+      }
     } catch (err) {
       console.warn(`Failed to process email ${email.id}:`, err);
       skipped++;
@@ -461,8 +479,9 @@ Deno.serve(async (req: Request) => {
   return json({
     ok: true,
     provider,
-    emails_processed: emails.length,
-    invoices_extracted: extracted,
-    non_invoices_skipped: skipped,
+    emails_processed:     emails.length,
+    invoices_extracted:   invoicesExtracted,
+    remittances_extracted: remittancesExtracted,
+    skipped,
   });
 });

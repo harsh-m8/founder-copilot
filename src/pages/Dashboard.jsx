@@ -5,6 +5,7 @@ import { useOrg } from "../context/OrgContext";
 import { useAccountingData } from "../hooks/useAccountingData";
 import { useEmailInvoices } from "../hooks/useEmailInvoices";
 import { useARData } from "../hooks/useARData";
+import { useRemittanceMatches } from "../hooks/useRemittanceMatches";
 import { ROLE_LABELS, ROLE_DESCRIPTIONS, assignableRoles } from "../lib/permissions";
 
 // ─── Mock / fallback data ─────────────────────────────────────────────────────
@@ -472,12 +473,15 @@ function customerRisk(invoicesForContact) {
 }
 
 // ─── Accounts Receivable panel ────────────────────────────────────────────────
-function ARPanel({ financialData, snapshot, inboxInvoices, reminders, lastReminderFor, sendingReminder, reminderError, onSendReminder, onGoToIntegrations }) {
+function ARPanel({ financialData, snapshot, reminders, lastReminderFor, sendingReminder, reminderError, onSendReminder, remittanceMatches, matching, markingPaid, onMarkPaid, onDismissMatch, onRunMatch, onGoToIntegrations }) {
   const { org, can } = useOrg();
-  const [reminderModal, setReminderModal] = useState(null); // { invoice }
-  const [emailInput, setEmailInput]       = useState("");
-  const [sending, setSending]             = useState(false);
-  const [sentOk, setSentOk]               = useState(false);
+  const [reminderModal, setReminderModal]   = useState(null); // { invoice }
+  const [emailInput, setEmailInput]         = useState("");
+  const [sending, setSending]               = useState(false);
+  const [sentOk, setSentOk]                 = useState(false);
+  const [markPaidModal, setMarkPaidModal]   = useState(null); // { match }
+  const [bankCode, setBankCode]             = useState("");
+  const [markPaidOk, setMarkPaidOk]         = useState(false);
 
   const canSync = can("integrations:sync");
 
@@ -528,14 +532,9 @@ function ARPanel({ financialData, snapshot, inboxInvoices, reminders, lastRemind
   for (const inv of arInvoices) bucketTotals[inv._bucket] = (bucketTotals[inv._bucket] || 0) + (Number(inv.amount) || 0);
   const bucketMax = Math.max(...Object.values(bucketTotals), 1);
 
-  // Remittance matches: inbox invoices where vendor matches an AR contact and amount is within 5%
-  const arContactSet = new Set(arInvoices.map((i) => (i.contact ?? "").toLowerCase()));
-  const remittanceMatches = (inboxInvoices ?? []).filter((inbox) => {
-    if (!inbox.vendor_name) return false;
-    const vendorLower = inbox.vendor_name.toLowerCase();
-    // Fuzzy match: inbox vendor name contains or is contained in an AR contact name
-    return [...arContactSet].some((c) => c.includes(vendorLower) || vendorLower.includes(c));
-  });
+  // pendingMatches: high/medium confidence, not yet applied or dismissed
+  const pendingMatches = (remittanceMatches ?? []).filter((m) => m.status === "pending");
+  const appliedMatches = (remittanceMatches ?? []).filter((m) => m.status === "applied");
 
   // Payment delay alerts: due in ≤7 days but not yet overdue
   const upcomingDue = arInvoices.filter((i) => i._days !== null && i._days >= -7 && i._days <= 0);
@@ -557,6 +556,15 @@ function ARPanel({ financialData, snapshot, inboxInvoices, reminders, lastRemind
     setEmailInput(last?.contact_email ?? "");
     setSentOk(false);
     setReminderModal({ invoice });
+  }
+
+  async function handleMarkPaid() {
+    if (!markPaidModal) return;
+    const ok = await onMarkPaid(markPaidModal.match.id, bankCode || undefined);
+    if (ok) {
+      setMarkPaidOk(true);
+      setTimeout(() => { setMarkPaidModal(null); setMarkPaidOk(false); }, 2000);
+    }
   }
 
   const inputStyle = { padding: "8px 12px", fontSize: "13px", border: "1px solid #E8E8E0", borderRadius: "8px", outline: "none", fontFamily: "inherit", color: "#0D0D0B", width: "100%", boxSizing: "border-box" };
@@ -628,26 +636,121 @@ function ARPanel({ financialData, snapshot, inboxInvoices, reminders, lastRemind
       </div>
 
       {/* Remittance matches */}
-      {remittanceMatches.length > 0 && (
-        <div style={{ background: "white", border: "1px solid #A7F3D0", borderRadius: "12px", padding: "20px" }}>
-          <div style={{ fontSize: "13px", fontWeight: 700, color: "#0D0D0B", marginBottom: "4px" }}>Possible Remittances Detected</div>
-          <p style={{ fontSize: "12px", color: "#6B6B60", margin: "0 0 14px", lineHeight: 1.5 }}>
-            The inbox scanner found {remittanceMatches.length} email{remittanceMatches.length > 1 ? "s" : ""} from customers that may be payment confirmations. Review and mark invoices paid in your accounting software.
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {remittanceMatches.slice(0, 5).map((m) => (
-              <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#F0FDF4", border: "1px solid #A7F3D0", borderRadius: "8px" }}>
-                <div>
-                  <div style={{ fontSize: "13px", fontWeight: 600, color: "#0D0D0B" }}>{m.vendor_name}</div>
-                  <div style={{ fontSize: "11px", color: "#A8A89A", marginTop: "2px" }}>{m.raw_email_subject}</div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: "13px", fontWeight: 600, color: "#1A9E5F" }}>{m.amount ? fmtUSD(m.amount) : "—"}</div>
-                  <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "10px", background: "#EAF7F0", color: "#1A9E5F", border: "1px solid #A7F3D0" }}>Possible remittance</span>
-                </div>
+      {(pendingMatches.length > 0 || appliedMatches.length > 0) && (
+        <div style={{ background: "white", border: "1px solid #E8E8E0", borderRadius: "12px", overflow: "hidden" }}>
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid #E8E8E0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: "13px", fontWeight: 700, color: "#0D0D0B" }}>
+                Remittance Matches
+                {pendingMatches.length > 0 && (
+                  <span style={{ marginLeft: "8px", fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "10px", background: "#FEF3C7", color: "#D97706", border: "1px solid #FDE68A" }}>
+                    {pendingMatches.length} pending
+                  </span>
+                )}
               </div>
-            ))}
+              <p style={{ margin: "3px 0 0", fontSize: "12px", color: "#6B6B60", lineHeight: 1.5 }}>
+                AI-matched payment confirmations from your inbox against open AR invoices. Review and write back to your accounting system.
+              </p>
+            </div>
+            <button
+              onClick={onRunMatch}
+              disabled={matching}
+              style={{ fontSize: "12px", fontWeight: 600, padding: "7px 14px", background: "#F0F0EC", color: "#0D0D0B", border: "1px solid #E8E8E0", borderRadius: "8px", cursor: matching ? "not-allowed" : "pointer", opacity: matching ? 0.6 : 1, whiteSpace: "nowrap" }}
+            >
+              {matching ? "Matching…" : "Re-run matching"}
+            </button>
           </div>
+
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {[...pendingMatches, ...appliedMatches].map((m, i) => {
+              const rem    = m.extracted_remittances;
+              const isPending = m.status === "pending";
+              const conf   = m.match_confidence;
+              const confStyle = conf === "high"
+                ? { bg: "#EAF7F0", color: "#1A9E5F", border: "#A7F3D0", label: "High" }
+                : { bg: "#FEF3C7", color: "#D97706", border: "#FDE68A", label: "Medium" };
+              const reasons = m.match_reasons ?? {};
+              const allMatches = [...pendingMatches, ...appliedMatches];
+              return (
+                <div key={m.id} style={{ padding: "14px 20px", borderBottom: i < allMatches.length - 1 ? "1px solid #F4F4F0" : "none", display: "flex", alignItems: "flex-start", gap: "16px" }}>
+                  {/* Left: invoice + remittance info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "6px" }}>
+                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#0D0D0B" }}>
+                        {m.invoice_contact ?? "Unknown"} · {m.invoice_id}
+                      </span>
+                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "10px", background: confStyle.bg, color: confStyle.color, border: `1px solid ${confStyle.border}` }}>
+                        {confStyle.label} confidence
+                      </span>
+                      <span style={{ fontSize: "10px", fontWeight: 600, color: "#A8A89A" }}>score {m.match_score}/100</span>
+                      {m.status === "applied" && (
+                        <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "10px", background: "#EAF7F0", color: "#1A9E5F", border: "1px solid #A7F3D0" }}>Applied</span>
+                      )}
+                    </div>
+
+                    {/* Invoice row */}
+                    <div style={{ fontSize: "12px", color: "#6B6B60", display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "4px" }}>
+                      <span>Invoice <strong style={{ color: "#0D0D0B" }}>{fmtUSD(Number(m.invoice_amount))}</strong></span>
+                      {m.invoice_due_date && <span>Due <strong style={{ color: "#0D0D0B" }}>{new Date(m.invoice_due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}</strong></span>}
+                    </div>
+
+                    {/* Remittance row */}
+                    {rem && (
+                      <div style={{ fontSize: "12px", color: "#6B6B60", display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "6px" }}>
+                        <span>From <strong style={{ color: "#0D0D0B" }}>{rem.payer_name ?? "—"}</strong></span>
+                        <span>Paid <strong style={{ color: "#0D0D0B" }}>{fmtUSD(Number(rem.amount_paid))}</strong></span>
+                        {rem.payment_date && <span>on <strong style={{ color: "#0D0D0B" }}>{new Date(rem.payment_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}</strong></span>}
+                        {rem.raw_email_subject && <span style={{ fontStyle: "italic", color: "#A8A89A" }}>"{rem.raw_email_subject}"</span>}
+                      </div>
+                    )}
+
+                    {/* Match reason pills */}
+                    <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
+                      {reasons.invoice_ref_match && <span style={{ fontSize: "10px", padding: "2px 6px", background: "#EFF6FF", color: "#3B82F6", border: "1px solid #BFDBFE", borderRadius: "6px" }}>Invoice ref matched</span>}
+                      {reasons.amount_match       && <span style={{ fontSize: "10px", padding: "2px 6px", background: "#EFF6FF", color: "#3B82F6", border: "1px solid #BFDBFE", borderRadius: "6px" }}>Amount matched</span>}
+                      {reasons.name_match         && <span style={{ fontSize: "10px", padding: "2px 6px", background: "#EFF6FF", color: "#3B82F6", border: "1px solid #BFDBFE", borderRadius: "6px" }}>Name matched</span>}
+                    </div>
+                  </div>
+
+                  {/* Right: actions */}
+                  {isPending && canSync && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
+                      <button
+                        onClick={() => { setMarkPaidModal({ match: m }); setBankCode(""); setMarkPaidOk(false); }}
+                        disabled={markingPaid}
+                        style={{ fontSize: "11px", fontWeight: 600, padding: "5px 12px", background: "#EAF7F0", color: "#1A9E5F", border: "1px solid #A7F3D0", borderRadius: "6px", cursor: markingPaid ? "not-allowed" : "pointer", opacity: markingPaid ? 0.6 : 1, whiteSpace: "nowrap" }}
+                      >
+                        Mark Paid
+                      </button>
+                      <button
+                        onClick={() => onDismissMatch(m.id)}
+                        style={{ fontSize: "11px", fontWeight: 500, padding: "5px 12px", background: "none", color: "#A8A89A", border: "1px solid #E8E8E0", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state when no matches yet but hook loaded */}
+      {pendingMatches.length === 0 && appliedMatches.length === 0 && !matching && (remittanceMatches ?? []).length === 0 && (
+        <div style={{ background: "white", border: "1px solid #E8E8E0", borderRadius: "12px", padding: "20px", display: "flex", alignItems: "center", gap: "14px" }}>
+          <div style={{ fontSize: "13px", fontWeight: 700, color: "#0D0D0B", flex: 1 }}>Remittance Matching</div>
+          <p style={{ margin: 0, fontSize: "12px", color: "#6B6B60", flex: 3, lineHeight: 1.5 }}>
+            Connect an email account and scan your inbox. The AI will detect payment confirmations and match them against open invoices automatically.
+          </p>
+          <button
+            onClick={onRunMatch}
+            disabled={matching}
+            style={{ fontSize: "12px", fontWeight: 600, padding: "7px 14px", background: "#F0F0EC", color: "#0D0D0B", border: "1px solid #E8E8E0", borderRadius: "8px", cursor: matching ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
+          >
+            Run matching
+          </button>
         </div>
       )}
 
@@ -725,6 +828,68 @@ function ARPanel({ financialData, snapshot, inboxInvoices, reminders, lastRemind
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Mark-paid modal */}
+      {markPaidModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "white", borderRadius: "16px", padding: "28px", width: 460, maxWidth: "calc(100vw - 32px)", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+            <div style={{ fontSize: "16px", fontWeight: 700, color: "#0D0D0B", marginBottom: "4px" }}>Mark Invoice as Paid</div>
+            <p style={{ fontSize: "13px", color: "#6B6B60", margin: "0 0 20px", lineHeight: 1.6 }}>
+              This will record the payment in your connected accounting system and mark this match as applied.
+            </p>
+
+            {/* Summary */}
+            <div style={{ background: "#F8F8F6", border: "1px solid #E8E8E0", borderRadius: "10px", padding: "14px 16px", marginBottom: "18px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                {[
+                  ["Invoice #",   markPaidModal.match.invoice_id ?? "—"],
+                  ["Customer",    markPaidModal.match.invoice_contact ?? "—"],
+                  ["Amount",      fmtUSD(Number(markPaidModal.match.extracted_remittances?.amount_paid ?? markPaidModal.match.invoice_amount))],
+                  ["Payer",       markPaidModal.match.extracted_remittances?.payer_name ?? "—"],
+                ].map(([label, val]) => (
+                  <div key={label}>
+                    <div style={{ fontSize: "10px", color: "#A8A89A", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</div>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#0D0D0B", marginTop: "2px" }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bank account code (required for Xero) */}
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ fontSize: "12px", fontWeight: 600, color: "#0D0D0B", display: "block", marginBottom: "5px" }}>
+                Bank account code <span style={{ fontWeight: 400, color: "#A8A89A" }}>(required for Xero, optional otherwise)</span>
+              </label>
+              <input
+                type="text"
+                value={bankCode}
+                onChange={(e) => setBankCode(e.target.value)}
+                placeholder="e.g. 090"
+                style={{ ...inputStyle }}
+              />
+            </div>
+
+            {markPaidOk && (
+              <div style={{ marginBottom: "12px", fontSize: "13px", color: "#065F46", background: "#EAF7F0", border: "1px solid #A7F3D0", borderRadius: "8px", padding: "8px 12px" }}>
+                Payment recorded successfully.
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <button onClick={() => setMarkPaidModal(null)} style={{ fontSize: "13px", fontWeight: 600, padding: "8px 18px", background: "none", border: "1px solid #E8E8E0", borderRadius: "8px", cursor: "pointer", color: "#6B6B60" }}>
+                Cancel
+              </button>
+              <button
+                onClick={handleMarkPaid}
+                disabled={markingPaid || markPaidOk}
+                style={{ fontSize: "13px", fontWeight: 600, padding: "8px 20px", background: "#1A9E5F", color: "white", border: "none", borderRadius: "8px", cursor: markingPaid || markPaidOk ? "not-allowed" : "pointer", opacity: markingPaid || markPaidOk ? 0.6 : 1 }}
+              >
+                {markingPaid ? "Recording…" : "Confirm Payment"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1523,6 +1688,7 @@ export default function Dashboard() {
   const { connections, financialData, snapshot, loading: dataLoading, syncing, error, connect, connectDirect, sync, disconnect } = useAccountingData();
   const { emailConnections, invoices, loading: emailLoading, syncing: emailSyncing, error: emailError, connectEmail, syncEmail, disconnectEmail, markReviewed } = useEmailInvoices();
   const { reminders, sendingReminder, reminderError, sendReminder, lastReminderFor, clearReminderError } = useARData();
+  const { matches: remittanceMatches, matching, markingPaid, markPaid, dismissMatch, runMatch } = useRemittanceMatches();
 
   // Inject markReviewed into invoice rows so InboxPanel can call it
   const invoicesWithActions = invoices.map((inv) => ({ ...inv, _markReviewed: markReviewed }));
@@ -1557,7 +1723,7 @@ export default function Dashboard() {
     revenue:      <ComingSoon title="Revenue Analytics"    onGoToIntegrations={goToIntegrations} />,
     cash:         <ComingSoon title="Cash & Runway"        onGoToIntegrations={goToIntegrations} />,
     expenses:     <ComingSoon title="Expense Management"   onGoToIntegrations={goToIntegrations} />,
-    ar:           <ARPanel financialData={financialData} snapshot={snapshot} inboxInvoices={invoices} reminders={reminders} lastReminderFor={lastReminderFor} sendingReminder={sendingReminder} reminderError={reminderError} onSendReminder={async (inv, email) => { clearReminderError(); return sendReminder(inv, email); }} onGoToIntegrations={goToIntegrations} />,
+    ar:           <ARPanel financialData={financialData} snapshot={snapshot} inboxInvoices={invoices} reminders={reminders} lastReminderFor={lastReminderFor} sendingReminder={sendingReminder} reminderError={reminderError} onSendReminder={async (inv, email) => { clearReminderError(); return sendReminder(inv, email); }} remittanceMatches={remittanceMatches} matching={matching} markingPaid={markingPaid} onMarkPaid={markPaid} onDismissMatch={dismissMatch} onRunMatch={runMatch} onGoToIntegrations={goToIntegrations} />,
     ap:           <ComingSoon title="Accounts Payable"     onGoToIntegrations={goToIntegrations} />,
     inbox:        <InboxPanel emailConnections={emailConnections} invoices={invoicesWithActions} syncing={emailSyncing} onSync={syncEmail} onGoToIntegrations={goToIntegrations} error={emailError} />,
     reporting:    <ComingSoon title="Financial Reporting"  onGoToIntegrations={goToIntegrations} />,

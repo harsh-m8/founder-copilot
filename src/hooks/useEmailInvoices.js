@@ -99,6 +99,14 @@ export function useEmailInvoices() {
 
     await loadData();
     setSyncing(false);
+
+    // Fire remittance-match in background — new remittances may now match open AR invoices
+    fetch(`${FUNCTIONS_URL}/remittance-match`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ org_id: org.id }),
+    }).catch(() => { /* non-critical */ });
+
     return body;
   }, [can, org, loadData]);
 
