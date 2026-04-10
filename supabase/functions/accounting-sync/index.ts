@@ -119,14 +119,18 @@ async function fetchQuickBooksData(conn: Connection, token: string) {
   const start        = sixMonthsAgo.toISOString().slice(0, 10);
   const end          = today.toISOString().slice(0, 10);
 
-  const [plRes, bsRes, arRes] = await Promise.all([
+  // Invoice query fetches all unpaid AR invoices directly (simpler than parsing AgedReceivableDetail)
+  const invQuery = encodeURIComponent("SELECT * FROM Invoice WHERE Balance > '0' ORDERBY DueDate MAXRESULTS 200");
+
+  const [plRes, bsRes, arRes, invRes] = await Promise.all([
     fetch(`${base}/reports/ProfitAndLoss?summarize_column_by=Month&start_date=${start}&end_date=${end}`, { headers }),
     fetch(`${base}/reports/BalanceSheet`, { headers }),
     fetch(`${base}/reports/AgedReceivableDetail`, { headers }),
+    fetch(`${base}/query?query=${invQuery}`, { headers }),
   ]);
-  const [pl, bs, ar] = await Promise.all([plRes.json(), bsRes.json(), arRes.json()]);
+  const [pl, bs, ar, invData] = await Promise.all([plRes.json(), bsRes.json(), arRes.json(), invRes.json()]);
 
-  return normaliseQBO(pl, bs, ar);
+  return normaliseQBO(pl, bs, ar, invData);
 }
 
 function qboGroupTotal(rows: Record<string, unknown>[], group: string): number {
@@ -135,7 +139,7 @@ function qboGroupTotal(rows: Record<string, unknown>[], group: string): number {
   return parseFloat(cols[cols.length - 1]?.value ?? "0") || 0;
 }
 
-function normaliseQBO(pl: Record<string, unknown>, bs: Record<string, unknown>, _ar: Record<string, unknown>) {
+function normaliseQBO(pl: Record<string, unknown>, bs: Record<string, unknown>, _ar: Record<string, unknown>, invData?: Record<string, unknown>) {
   const plRows = (((pl.Rows as Record<string, unknown>)?.Row) as Record<string, unknown>[]) ?? [];
   const bsRows = (((bs.Rows as Record<string, unknown>)?.Row) as Record<string, unknown>[]) ?? [];
 
@@ -158,9 +162,21 @@ function normaliseQBO(pl: Record<string, unknown>, bs: Record<string, unknown>, 
     actual: parseFloat(incCols[i + 1]?.value ?? "0") || 0,
   }));
 
+  // AR invoices from the direct Invoice query
+  const qboInvoices = (invData?.QueryResponse as Record<string, unknown>)?.Invoice as Array<Record<string, unknown>> ?? [];
+  const arInvoices  = qboInvoices.map((i) => ({
+    id:       i.DocNumber as string,
+    amount:   parseFloat(String(i.Balance ?? 0)) || 0,
+    due_date: i.DueDate as string ?? null,
+    contact:  (i.CustomerRef as Record<string, string>)?.name ?? null,
+  }));
+  const arOverdue   = arInvoices.filter((i) => i.due_date && new Date(i.due_date) < new Date());
+  const arTotal     = arInvoices.reduce((s, i) => s + i.amount, 0);
+
   return {
-    kpis: { monthly_burn: Math.abs(expenses), cash_position: cash, monthly_revenue: income, net_income: netInc },
+    kpis: { monthly_burn: Math.abs(expenses), cash_position: cash, monthly_revenue: income, net_income: netInc, ar_outstanding: arTotal, ar_overdue_count: arOverdue.length },
     revenue_by_month: revenueByMonth,
+    ar_invoices: arInvoices,
   };
 }
 
@@ -207,8 +223,9 @@ function normaliseXero(pl: Record<string, unknown>, bs: Record<string, unknown>,
   const cash     = xeroFind(bsRows, "Total Bank");
   const ar       = xeroFind(bsRows, "Total Accounts Receivable");
 
-  const invoices = (invData.Invoices as Array<Record<string, unknown>>) ?? [];
-  const overdue  = invoices.filter((i) => new Date(i.DueDate as string) < new Date() && (i.AmountDue as number) > 0);
+  const invoices    = (invData.Invoices as Array<Record<string, unknown>>) ?? [];
+  const outstanding = invoices.filter((i) => (i.AmountDue as number) > 0);
+  const overdue     = outstanding.filter((i) => new Date(i.DueDate as string) < new Date());
 
   // Monthly revenue breakdown
   const headerRow   = plRows.find((r) => r.RowType === "Header") as Record<string, unknown> | undefined;
@@ -232,7 +249,7 @@ function normaliseXero(pl: Record<string, unknown>, bs: Record<string, unknown>,
   return {
     kpis: { monthly_burn: Math.abs(expenses), cash_position: cash, monthly_revenue: income, ar_outstanding: ar, ar_overdue_count: overdue.length },
     revenue_by_month: revenueByMonth,
-    ar_invoices: overdue.map((i) => ({
+    ar_invoices: outstanding.map((i) => ({
       id: i.InvoiceNumber, amount: i.AmountDue, due_date: i.DueDate,
       contact: (i.Contact as Record<string, unknown>)?.Name,
     })),
@@ -253,7 +270,7 @@ async function fetchZohoData(conn: Connection, token: string) {
   const [plRes, bsRes, invRes] = await Promise.all([
     fetch(`${base}/reports/profitandloss?${orgParam}&from_date=${from}&to_date=${to}`, { headers }),
     fetch(`${base}/reports/balancesheet?${orgParam}`, { headers }),
-    fetch(`${base}/invoices?${orgParam}&status=overdue&per_page=200`, { headers }),
+    fetch(`${base}/invoices?${orgParam}&status=outstanding&per_page=200`, { headers }),
   ]);
   const [pl, bs, invData] = await Promise.all([plRes.json(), bsRes.json(), invRes.json()]);
 
@@ -278,10 +295,11 @@ function normaliseZoho(pl: Record<string, unknown>, bs: Record<string, unknown>,
   const cash     = zohoValue(bsSecs, "Cash And Cash Equivalents");
   const ar       = zohoValue(bsSecs, "Accounts Receivable");
 
-  const invoices = (invData.invoices as Array<Record<string, unknown>>) ?? [];
+  const invoices      = (invData.invoices as Array<Record<string, unknown>>) ?? [];
+  const zohoOverdue   = invoices.filter((i) => i.due_date && new Date(i.due_date as string) < new Date());
 
   return {
-    kpis: { monthly_burn: Math.abs(expenses), cash_position: cash, monthly_revenue: income, ar_outstanding: ar, ar_overdue_count: invoices.length },
+    kpis: { monthly_burn: Math.abs(expenses), cash_position: cash, monthly_revenue: income, ar_outstanding: ar, ar_overdue_count: zohoOverdue.length },
     revenue_by_month: [],
     ar_invoices: invoices.map((i) => ({
       id: i.invoice_number, amount: i.balance, due_date: i.due_date, contact: i.customer_name,

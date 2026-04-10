@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useOrg } from "../context/OrgContext";
 import { useAccountingData } from "../hooks/useAccountingData";
 import { useEmailInvoices } from "../hooks/useEmailInvoices";
+import { useARData } from "../hooks/useARData";
 import { ROLE_LABELS, ROLE_DESCRIPTIONS, assignableRoles } from "../lib/permissions";
 
 // ─── Mock / fallback data ─────────────────────────────────────────────────────
@@ -431,6 +432,371 @@ function buildLiveAlerts(data) {
   else if (k.net_income < 0) alerts.push({ type: "warn", text: `Net loss of ${fmtUSD(Math.abs(k.net_income))} this period` });
   if (!alerts.length) alerts.push({ type: "info", text: "Accounting data synced. Review your KPIs above." });
   return alerts;
+}
+
+// ─── AR helpers ───────────────────────────────────────────────────────────────
+function daysOverdue(dueDateStr) {
+  if (!dueDateStr) return null;
+  const diff = Math.floor((Date.now() - new Date(dueDateStr).getTime()) / 86400000);
+  return diff; // negative = still current (days until due)
+}
+
+function agingBucket(days) {
+  if (days === null) return "unknown";
+  if (days <= 0)  return "current";
+  if (days <= 30) return "1-30";
+  if (days <= 60) return "31-60";
+  if (days <= 90) return "61-90";
+  return "90+";
+}
+
+const BUCKET_STYLE = {
+  "current": { label: "Current",  bg: "#EAF7F0", color: "#1A9E5F", border: "#A7F3D0" },
+  "1-30":    { label: "1–30 days",  bg: "#FEF3C7", color: "#D97706", border: "#FDE68A" },
+  "31-60":   { label: "31–60 days", bg: "#FEF2F2", color: "#DC2626", border: "#FECACA" },
+  "61-90":   { label: "61–90 days", bg: "#FDF4FF", color: "#9333EA", border: "#E9D5FF" },
+  "90+":     { label: ">90 days",   bg: "#1A0000", color: "#FCA5A5", border: "#7F1D1D" },
+};
+
+const RISK_STYLE = {
+  high:   { label: "High Risk",   bg: "#FEF2F2", color: "#DC2626", border: "#FECACA" },
+  medium: { label: "Medium Risk", bg: "#FEF3C7", color: "#D97706", border: "#FDE68A" },
+  low:    { label: "Low Risk",    bg: "#EAF7F0", color: "#1A9E5F", border: "#A7F3D0" },
+};
+
+function customerRisk(invoicesForContact) {
+  const maxDays = Math.max(...invoicesForContact.map((i) => daysOverdue(i.due_date) ?? 0));
+  if (maxDays > 60 || invoicesForContact.length >= 3) return "high";
+  if (maxDays > 30) return "medium";
+  return "low";
+}
+
+// ─── Accounts Receivable panel ────────────────────────────────────────────────
+function ARPanel({ financialData, snapshot, inboxInvoices, reminders, lastReminderFor, sendingReminder, reminderError, onSendReminder, onGoToIntegrations }) {
+  const { org, can } = useOrg();
+  const [reminderModal, setReminderModal] = useState(null); // { invoice }
+  const [emailInput, setEmailInput]       = useState("");
+  const [sending, setSending]             = useState(false);
+  const [sentOk, setSentOk]               = useState(false);
+
+  const canSync = can("integrations:sync");
+
+  if (!financialData) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 400, gap: "12px", textAlign: "center" }}>
+        <div style={{ width: 48, height: 48, borderRadius: "12px", background: "#EAF7F0", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A9E5F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <div style={{ fontSize: "18px", fontWeight: 700, color: "#0D0D0B" }}>No accounting data</div>
+        <div style={{ fontSize: "14px", color: "#6B6B60", maxWidth: 360, lineHeight: 1.6 }}>Connect your accounting software to see live AR data and send reminders.</div>
+        <button onClick={onGoToIntegrations} style={{ marginTop: "8px", fontSize: "13px", fontWeight: 600, padding: "9px 20px", background: "#E8572A", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}>
+          Connect accounting
+        </button>
+      </div>
+    );
+  }
+
+  const arInvoices = (financialData.ar_invoices ?? []).map((inv) => ({
+    ...inv,
+    _days:   daysOverdue(inv.due_date),
+    _bucket: agingBucket(daysOverdue(inv.due_date)),
+  })).sort((a, b) => (b._days ?? 0) - (a._days ?? 0));
+
+  const totalOutstanding = arInvoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const overdueInvoices  = arInvoices.filter((i) => (i._days ?? 0) > 0);
+  const overdueAmount    = overdueInvoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+  // Per-customer grouping for risk signals
+  const byContact = {};
+  for (const inv of arInvoices) {
+    const key = inv.contact ?? "Unknown";
+    if (!byContact[key]) byContact[key] = [];
+    byContact[key].push(inv);
+  }
+  const customers = Object.entries(byContact).map(([name, invs]) => ({
+    name,
+    invoices:      invs,
+    totalAmount:   invs.reduce((s, i) => s + (Number(i.amount) || 0), 0),
+    maxDays:       Math.max(...invs.map((i) => i._days ?? 0)),
+    risk:          customerRisk(invs),
+  })).sort((a, b) => b.maxDays - a.maxDays);
+
+  const highRiskCount = customers.filter((c) => c.risk === "high").length;
+
+  // Aging bucket totals
+  const bucketTotals = { "current": 0, "1-30": 0, "31-60": 0, "61-90": 0, "90+": 0 };
+  for (const inv of arInvoices) bucketTotals[inv._bucket] = (bucketTotals[inv._bucket] || 0) + (Number(inv.amount) || 0);
+  const bucketMax = Math.max(...Object.values(bucketTotals), 1);
+
+  // Remittance matches: inbox invoices where vendor matches an AR contact and amount is within 5%
+  const arContactSet = new Set(arInvoices.map((i) => (i.contact ?? "").toLowerCase()));
+  const remittanceMatches = (inboxInvoices ?? []).filter((inbox) => {
+    if (!inbox.vendor_name) return false;
+    const vendorLower = inbox.vendor_name.toLowerCase();
+    // Fuzzy match: inbox vendor name contains or is contained in an AR contact name
+    return [...arContactSet].some((c) => c.includes(vendorLower) || vendorLower.includes(c));
+  });
+
+  // Payment delay alerts: due in ≤7 days but not yet overdue
+  const upcomingDue = arInvoices.filter((i) => i._days !== null && i._days >= -7 && i._days <= 0);
+
+  async function handleSend() {
+    if (!emailInput.trim() || !reminderModal) return;
+    setSending(true);
+    setSentOk(false);
+    const result = await onSendReminder(reminderModal.invoice, emailInput.trim());
+    setSending(false);
+    if (result) {
+      setSentOk(true);
+      setTimeout(() => { setReminderModal(null); setSentOk(false); setEmailInput(""); }, 2000);
+    }
+  }
+
+  function openReminderModal(invoice) {
+    const last = lastReminderFor(invoice.id);
+    setEmailInput(last?.contact_email ?? "");
+    setSentOk(false);
+    setReminderModal({ invoice });
+  }
+
+  const inputStyle = { padding: "8px 12px", fontSize: "13px", border: "1px solid #E8E8E0", borderRadius: "8px", outline: "none", fontFamily: "inherit", color: "#0D0D0B", width: "100%", boxSizing: "border-box" };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+
+      {/* Data source banner */}
+      <div style={{ background: "#EAF7F0", border: "1px solid #A7F3D0", borderRadius: "10px", padding: "10px 16px", fontSize: "13px", color: "#065F46" }}>
+        Live AR data from <strong>{snapshot?.provider}</strong> · synced {fmtDate(snapshot?.synced_at)}
+        {!financialData.ar_invoices?.length && <span style={{ color: "#D97706", marginLeft: "8px" }}>— No outstanding invoices found.</span>}
+      </div>
+
+      {/* KPI row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: "12px" }}>
+        {[
+          { label: "Total Outstanding", value: fmtUSD(totalOutstanding),   accent: "#1A9E5F" },
+          { label: "Overdue Amount",    value: fmtUSD(overdueAmount),       accent: overdueAmount > 0 ? "#DC2626" : "#1A9E5F" },
+          { label: "Overdue Invoices",  value: String(overdueInvoices.length), accent: overdueInvoices.length > 0 ? "#D97706" : "#1A9E5F" },
+          { label: "High Risk Customers", value: String(highRiskCount),     accent: highRiskCount > 0 ? "#DC2626" : "#1A9E5F" },
+        ].map((k) => (
+          <div key={k.label} style={{ background: "white", border: "1px solid #E8E8E0", borderRadius: "12px", padding: "16px 18px", borderTop: `3px solid ${k.accent}` }}>
+            <div style={{ fontSize: "11px", color: "#A8A89A", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>{k.label}</div>
+            <div style={{ fontSize: "22px", fontWeight: 700, color: "#0D0D0B" }}>{k.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Payment delay alerts */}
+      {(upcomingDue.length > 0 || overdueInvoices.filter(i => i._days > 60).length > 0) && (
+        <div style={{ background: "white", border: "1px solid #E8E8E0", borderRadius: "12px", padding: "20px" }}>
+          <div style={{ fontSize: "13px", fontWeight: 700, color: "#0D0D0B", marginBottom: "12px" }}>Payment Alerts</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {upcomingDue.map((inv) => (
+              <AlertRow key={inv.id} type="warn" text={`Invoice ${inv.id} (${fmtUSD(inv.amount)}) for ${inv.contact ?? "unknown"} is due ${inv._days === 0 ? "today" : `in ${Math.abs(inv._days)} day${Math.abs(inv._days) > 1 ? "s" : ""}`}.`} />
+            ))}
+            {overdueInvoices.filter(i => i._days > 60).map((inv) => (
+              <AlertRow key={inv.id} type="warn" text={`Invoice ${inv.id} (${fmtUSD(inv.amount)}) for ${inv.contact ?? "unknown"} is ${inv._days} days overdue — urgent collection required.`} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Aging buckets */}
+      <div style={{ background: "white", border: "1px solid #E8E8E0", borderRadius: "12px", padding: "20px" }}>
+        <div style={{ fontSize: "13px", fontWeight: 700, color: "#0D0D0B", marginBottom: "16px" }}>AR Aging</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {Object.entries(BUCKET_STYLE).map(([key, style]) => {
+            const amt = bucketTotals[key] || 0;
+            const pct = bucketMax > 0 ? (amt / bucketMax) * 100 : 0;
+            return (
+              <div key={key}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "12px", color: "#0D0D0B", fontWeight: 500 }}>{style.label}</span>
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: style.color }}>
+                    {fmtUSD(amt)}
+                    <span style={{ fontWeight: 400, color: "#A8A89A", marginLeft: "6px" }}>
+                      ({arInvoices.filter(i => i._bucket === key).length} invoice{arInvoices.filter(i => i._bucket === key).length !== 1 ? "s" : ""})
+                    </span>
+                  </span>
+                </div>
+                <div style={{ height: 8, background: "#F0F0EC", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: style.color, borderRadius: 4, transition: "width 0.6s ease", opacity: 0.8 }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Remittance matches */}
+      {remittanceMatches.length > 0 && (
+        <div style={{ background: "white", border: "1px solid #A7F3D0", borderRadius: "12px", padding: "20px" }}>
+          <div style={{ fontSize: "13px", fontWeight: 700, color: "#0D0D0B", marginBottom: "4px" }}>Possible Remittances Detected</div>
+          <p style={{ fontSize: "12px", color: "#6B6B60", margin: "0 0 14px", lineHeight: 1.5 }}>
+            The inbox scanner found {remittanceMatches.length} email{remittanceMatches.length > 1 ? "s" : ""} from customers that may be payment confirmations. Review and mark invoices paid in your accounting software.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {remittanceMatches.slice(0, 5).map((m) => (
+              <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#F0FDF4", border: "1px solid #A7F3D0", borderRadius: "8px" }}>
+                <div>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: "#0D0D0B" }}>{m.vendor_name}</div>
+                  <div style={{ fontSize: "11px", color: "#A8A89A", marginTop: "2px" }}>{m.raw_email_subject}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: "#1A9E5F" }}>{m.amount ? fmtUSD(m.amount) : "—"}</div>
+                  <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "10px", background: "#EAF7F0", color: "#1A9E5F", border: "1px solid #A7F3D0" }}>Possible remittance</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Customer risk signals */}
+      {customers.length > 0 && (
+        <div style={{ background: "white", border: "1px solid #E8E8E0", borderRadius: "12px", padding: "20px" }}>
+          <div style={{ fontSize: "13px", fontWeight: 700, color: "#0D0D0B", marginBottom: "14px" }}>Customer Risk Signals</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {customers.map((c) => {
+              const rs = RISK_STYLE[c.risk];
+              return (
+                <div key={c.name} style={{ display: "flex", alignItems: "center", gap: "14px", padding: "12px 16px", border: "1px solid #F4F4F0", borderRadius: "10px" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#0D0D0B" }}>{c.name}</div>
+                    <div style={{ fontSize: "11px", color: "#A8A89A", marginTop: "2px" }}>
+                      {c.invoices.length} invoice{c.invoices.length !== 1 ? "s" : ""} · max {c.maxDays > 0 ? `${c.maxDays}d overdue` : "current"}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#0D0D0B", marginBottom: "4px" }}>{fmtUSD(c.totalAmount)}</div>
+                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "10px", background: rs.bg, color: rs.color, border: `1px solid ${rs.border}` }}>{rs.label}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Invoice table */}
+      {arInvoices.length > 0 && (
+        <div style={{ background: "white", border: "1px solid #E8E8E0", borderRadius: "12px", overflow: "hidden" }}>
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid #E8E8E0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: "13px", fontWeight: 700, color: "#0D0D0B" }}>All Outstanding Invoices ({arInvoices.length})</div>
+          </div>
+          {/* Header */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 110px 105px 105px 100px 80px", padding: "8px 16px", background: "#FAFAF8", borderBottom: "1px solid #F4F4F0" }}>
+            {["Customer", "Invoice #", "Due Date", "Amount", "Status", ""].map((h) => (
+              <div key={h} style={{ fontSize: "11px", fontWeight: 700, color: "#A8A89A", textTransform: "uppercase", letterSpacing: "0.07em" }}>{h}</div>
+            ))}
+          </div>
+          {arInvoices.map((inv, i) => {
+            const bs   = BUCKET_STYLE[inv._bucket] ?? BUCKET_STYLE["current"];
+            const last = lastReminderFor(inv.id);
+            const daysLabel = inv._days === null ? "—"
+              : inv._days <= 0 ? (inv._days === 0 ? "Due today" : `Due in ${Math.abs(inv._days)}d`)
+              : `${inv._days}d overdue`;
+
+            return (
+              <div key={inv.id} style={{ display: "grid", gridTemplateColumns: "1fr 110px 105px 105px 100px 80px", padding: "12px 16px", borderBottom: i < arInvoices.length - 1 ? "1px solid #F4F4F0" : "none", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: "#0D0D0B" }}>{inv.contact ?? "—"}</div>
+                  {last && <div style={{ fontSize: "10px", color: "#A8A89A", marginTop: "2px" }}>Reminded {fmtDate(last.sent_at)}</div>}
+                </div>
+                <div style={{ fontSize: "12px", color: "#6B6B60" }}>{inv.id ?? "—"}</div>
+                <div style={{ fontSize: "12px", color: "#6B6B60" }}>
+                  {inv.due_date ? new Date(inv.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "—"}
+                </div>
+                <div style={{ fontSize: "13px", fontWeight: 600, color: "#0D0D0B" }}>{fmtUSD(Number(inv.amount))}</div>
+                <div>
+                  <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "10px", background: bs.bg, color: bs.color, border: `1px solid ${bs.border}`, whiteSpace: "nowrap" }}>
+                    {daysLabel}
+                  </span>
+                </div>
+                <div>
+                  {canSync && inv._days !== null && inv._days > -7 && (
+                    <button
+                      onClick={() => openReminderModal(inv)}
+                      style={{ fontSize: "11px", fontWeight: 600, padding: "4px 10px", background: "#FDF1EC", color: "#E8572A", border: "1px solid #F5C4AF", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}
+                    >
+                      Remind
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Reminder modal */}
+      {reminderModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "white", borderRadius: "16px", padding: "28px", width: 460, maxWidth: "calc(100vw - 32px)", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
+            <div style={{ fontSize: "16px", fontWeight: 700, color: "#0D0D0B", marginBottom: "4px" }}>Send Payment Reminder</div>
+            <p style={{ fontSize: "13px", color: "#6B6B60", margin: "0 0 20px", lineHeight: 1.6 }}>
+              Claude will draft a personalised reminder email based on how overdue the invoice is.
+            </p>
+
+            {/* Invoice summary */}
+            <div style={{ background: "#F8F8F6", border: "1px solid #E8E8E0", borderRadius: "10px", padding: "14px 16px", marginBottom: "18px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                {[
+                  ["Customer",  reminderModal.invoice.contact ?? "—"],
+                  ["Invoice #", reminderModal.invoice.id ?? "—"],
+                  ["Amount",    fmtUSD(Number(reminderModal.invoice.amount))],
+                  ["Due date",  reminderModal.invoice.due_date ?? "—"],
+                ].map(([label, val]) => (
+                  <div key={label}>
+                    <div style={{ fontSize: "10px", color: "#A8A89A", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</div>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#0D0D0B", marginTop: "2px" }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Email input */}
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ fontSize: "12px", fontWeight: 600, color: "#0D0D0B", display: "block", marginBottom: "5px" }}>
+                Customer email address
+              </label>
+              <input
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="customer@example.com"
+                style={{ ...inputStyle }}
+                autoFocus
+              />
+            </div>
+
+            {reminderError && (
+              <div style={{ marginBottom: "12px", fontSize: "13px", color: "#DC2626", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", padding: "8px 12px" }}>
+                {reminderError}
+              </div>
+            )}
+            {sentOk && (
+              <div style={{ marginBottom: "12px", fontSize: "13px", color: "#065F46", background: "#EAF7F0", border: "1px solid #A7F3D0", borderRadius: "8px", padding: "8px 12px" }}>
+                Reminder sent successfully.
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <button onClick={() => { setReminderModal(null); setSentOk(false); }} style={{ fontSize: "13px", fontWeight: 600, padding: "8px 18px", background: "none", border: "1px solid #E8E8E0", borderRadius: "8px", cursor: "pointer", color: "#6B6B60" }}>
+                Cancel
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={sending || !emailInput.trim()}
+                style={{ fontSize: "13px", fontWeight: 600, padding: "8px 20px", background: "#E8572A", color: "white", border: "none", borderRadius: "8px", cursor: sending || !emailInput.trim() ? "not-allowed" : "pointer", opacity: sending || !emailInput.trim() ? 0.6 : 1 }}
+              >
+                {sending ? "Sending…" : "Send Reminder"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Inbox Invoices panel ─────────────────────────────────────────────────────
@@ -1156,6 +1522,7 @@ export default function Dashboard() {
   const { org, can, loading: orgLoading } = useOrg();
   const { connections, financialData, snapshot, loading: dataLoading, syncing, error, connect, connectDirect, sync, disconnect } = useAccountingData();
   const { emailConnections, invoices, loading: emailLoading, syncing: emailSyncing, error: emailError, connectEmail, syncEmail, disconnectEmail, markReviewed } = useEmailInvoices();
+  const { reminders, sendingReminder, reminderError, sendReminder, lastReminderFor, clearReminderError } = useARData();
 
   // Inject markReviewed into invoice rows so InboxPanel can call it
   const invoicesWithActions = invoices.map((inv) => ({ ...inv, _markReviewed: markReviewed }));
@@ -1190,7 +1557,7 @@ export default function Dashboard() {
     revenue:      <ComingSoon title="Revenue Analytics"    onGoToIntegrations={goToIntegrations} />,
     cash:         <ComingSoon title="Cash & Runway"        onGoToIntegrations={goToIntegrations} />,
     expenses:     <ComingSoon title="Expense Management"   onGoToIntegrations={goToIntegrations} />,
-    ar:           <ComingSoon title="Accounts Receivable"  onGoToIntegrations={goToIntegrations} />,
+    ar:           <ARPanel financialData={financialData} snapshot={snapshot} inboxInvoices={invoices} reminders={reminders} lastReminderFor={lastReminderFor} sendingReminder={sendingReminder} reminderError={reminderError} onSendReminder={async (inv, email) => { clearReminderError(); return sendReminder(inv, email); }} onGoToIntegrations={goToIntegrations} />,
     ap:           <ComingSoon title="Accounts Payable"     onGoToIntegrations={goToIntegrations} />,
     inbox:        <InboxPanel emailConnections={emailConnections} invoices={invoicesWithActions} syncing={emailSyncing} onSync={syncEmail} onGoToIntegrations={goToIntegrations} error={emailError} />,
     reporting:    <ComingSoon title="Financial Reporting"  onGoToIntegrations={goToIntegrations} />,
