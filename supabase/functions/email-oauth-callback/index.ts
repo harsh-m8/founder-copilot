@@ -13,14 +13,27 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-type EmailProvider = "gmail" | "outlook";
+type EmailProvider = "gmail" | "outlook" | "zoho";
 
 const TOKEN_URLS: Record<EmailProvider, string> = {
   gmail:   "https://oauth2.googleapis.com/token",
   outlook: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+  zoho:    "https://accounts.zoho.com/oauth/v2/token",
 };
 
 function redirect(to: string) { return Response.redirect(to, 302); }
+
+// Maps the api_domain from Zoho's token response to the correct Mail API base URL.
+// Zoho data centers: US → zohoapis.com, EU → zohoapis.eu, IN → zohoapis.in,
+// AU → zohoapis.com.au, JP → zohoapis.jp, CA → zohoapis.ca
+function zohoMailBaseFromApiDomain(apiDomain: string): string {
+  if (apiDomain.includes(".eu"))      return "https://mail.zoho.eu";
+  if (apiDomain.includes(".in"))      return "https://mail.zoho.in";
+  if (apiDomain.includes(".com.au"))  return "https://mail.zoho.com.au";
+  if (apiDomain.includes(".jp"))      return "https://mail.zoho.jp";
+  if (apiDomain.includes(".ca"))      return "https://mail.zohocloud.ca";
+  return "https://mail.zoho.com"; // US default
+}
 
 Deno.serve(async (req: Request) => {
   const url   = new URL(req.url);
@@ -82,6 +95,15 @@ Deno.serve(async (req: Request) => {
     return redirect(`${frontendUrl}/dashboard?error=token_exchange_failed`);
   }
 
+  // ── Derive Zoho Mail API base URL from the token response ────────────────
+  // Zoho returns api_domain (e.g. "https://www.zohoapis.in") in the token
+  // response. We map that to the correct Mail API host per data center.
+  // This is stored per-connection so each org's data center is respected.
+  let zohoMailBase: string | null = null;
+  if (emailProvider === "zoho") {
+    zohoMailBase = zohoMailBaseFromApiDomain(tokens.api_domain ?? "");
+  }
+
   // ── Fetch the user's email address ────────────────────────────────────────
   let emailAddress: string | null = null;
   try {
@@ -91,12 +113,22 @@ Deno.serve(async (req: Request) => {
       });
       const profile = await r.json();
       emailAddress = profile.email ?? null;
-    } else {
+    } else if (emailProvider === "outlook") {
       const r = await fetch("https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName", {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
       });
       const profile = await r.json();
       emailAddress = profile.mail ?? profile.userPrincipalName ?? null;
+    } else {
+      // Zoho: fetch profile from the region-specific accounts host
+      const accountsBase = zohoMailBase
+        ? zohoMailBase.replace("mail.", "accounts.")
+        : "https://accounts.zoho.com";
+      const r = await fetch(`${accountsBase}/oauth/user/info`, {
+        headers: { Authorization: `Zoho-oauthtoken ${tokens.access_token}` },
+      });
+      const profile = await r.json();
+      emailAddress = profile.Email ?? null;
     }
   } catch (e) {
     console.warn("Could not fetch email address", e);
@@ -117,6 +149,7 @@ Deno.serve(async (req: Request) => {
         email_address:    emailAddress,
         connected_at:     new Date().toISOString(),
         connected_by:     user_id,
+        zoho_mail_base:   zohoMailBase,
       },
       { onConflict: "org_id,provider" },
     );

@@ -24,13 +24,14 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, content-type",
 };
 
-type EmailProvider = "gmail" | "outlook";
+type EmailProvider = "gmail" | "outlook" | "zoho";
 
 interface EmailConnection {
   provider:        EmailProvider;
   access_token:    string;
   refresh_token:   string | null;
   token_expires_at:string | null;
+  zoho_mail_base:  string | null;  // only set for Zoho connections
 }
 
 interface EmailMessage {
@@ -93,7 +94,9 @@ async function ensureFreshToken(
 
   const tokenUrl = p === "gmail"
     ? "https://oauth2.googleapis.com/token"
-    : "https://login.microsoftonline.com/common/oauth2/v2.0/token";
+    : p === "zoho"
+      ? "https://accounts.zoho.com/oauth/v2/token"
+      : "https://login.microsoftonline.com/common/oauth2/v2.0/token";
 
   const res = await fetch(tokenUrl, {
     method: "POST",
@@ -267,6 +270,100 @@ async function fetchOutlookMessages(token: string, since: string | null, max: nu
   return messages;
 }
 
+// ── Zoho Mail: fetch candidate emails ────────────────────────────────────────
+// zohoMailBase is stored per-connection at OAuth time (derived from the api_domain
+// in Zoho's token response), so each org's data center is respected automatically.
+async function fetchZohoMessages(token: string, since: string | null, max: number, zohoMailBase: string): Promise<EmailMessage[]> {
+  const base    = zohoMailBase;
+  const headers = { Authorization: `Zoho-oauthtoken ${token}`, Accept: "application/json" };
+
+  // Step 1: get the primary account ID
+  const accountsRes = await fetch(`${base}/api/accounts`, { headers });
+  if (!accountsRes.ok) throw new Error(`Zoho accounts fetch failed: ${accountsRes.status}`);
+  const accountsData = await accountsRes.json();
+  const accountId    = accountsData.data?.[0]?.accountId as string | undefined;
+  if (!accountId) throw new Error("No Zoho Mail account found");
+
+  // Step 2: search for invoice/remittance-related messages
+  const keywords = ["invoice", "receipt", "bill", "statement", "payment", "paid", "remittance"];
+  const messages: EmailMessage[] = [];
+  const seenIds   = new Set<string>();
+
+  for (const keyword of keywords) {
+    if (messages.length >= max) break;
+    const remaining = max - messages.length;
+
+    let url = `${base}/api/accounts/${accountId}/messages/search?searchKey=${encodeURIComponent(keyword)}&limit=${remaining}&sortBy=date&sortOrder=desc`;
+    if (since) url += `&since=${new Date(since).getTime()}`;
+
+    const listRes = await fetch(url, { headers });
+    if (!listRes.ok) continue;
+    const listData = await listRes.json();
+
+    for (const msg of (listData.data ?? [])) {
+      if (seenIds.has(msg.messageId)) continue;
+      seenIds.add(msg.messageId);
+
+      try {
+        // Fetch message content
+        const contentRes = await fetch(
+          `${base}/api/accounts/${accountId}/messages/${msg.messageId}/content`,
+          { headers },
+        );
+        let body = "";
+        if (contentRes.ok) {
+          const contentData = await contentRes.json();
+          const raw = contentData.data?.content ?? "";
+          body = contentData.data?.isHtml ? htmlToText(raw) : raw;
+        }
+
+        // Fetch PDF attachments if any
+        const pdfs: { name: string; base64: string }[] = [];
+        if (msg.hasAttachment) {
+          const attListRes = await fetch(
+            `${base}/api/accounts/${accountId}/messages/${msg.messageId}/attachments`,
+            { headers },
+          );
+          if (attListRes.ok) {
+            const attListData = await attListRes.json();
+            for (const att of (attListData.data ?? [])) {
+              if (att.contentType !== "application/pdf") continue;
+              try {
+                const attRes = await fetch(
+                  `${base}/api/accounts/${accountId}/messages/${msg.messageId}/attachments/${att.attachmentId}`,
+                  { headers },
+                );
+                if (!attRes.ok) continue;
+                const buf    = await attRes.arrayBuffer();
+                const bytes  = new Uint8Array(buf);
+                let binary   = "";
+                bytes.forEach((b) => { binary += String.fromCharCode(b); });
+                pdfs.push({ name: att.fileName ?? "attachment.pdf", base64: btoa(binary) });
+              } catch (e) {
+                console.warn("Could not download Zoho attachment", att.attachmentId, e);
+              }
+            }
+          }
+        }
+
+        if (body || pdfs.length > 0) {
+          messages.push({
+            id:      msg.messageId,
+            subject: msg.subject ?? "",
+            from:    msg.fromAddress ?? "",
+            body:    body.slice(0, 8000),
+            pdfs,
+          });
+        }
+      } catch (e) {
+        console.warn(`Skipping Zoho message ${msg.messageId}:`, e);
+      }
+    }
+  }
+
+  return messages;
+}
+
 // ── Claude: classify and extract (invoice OR remittance OR null) ──────────────
 async function classifyAndExtract(
   email: EmailMessage,
@@ -357,8 +454,8 @@ Deno.serve(async (req: Request) => {
     org_id: string; provider: EmailProvider; max_emails?: number;
   };
 
-  if (!org_id)                                          return json({ error: "org_id is required" }, 400);
-  if (!["gmail", "outlook"].includes(provider))         return json({ error: "provider must be gmail or outlook" }, 400);
+  if (!org_id)                                                   return json({ error: "org_id is required" }, 400);
+  if (!["gmail", "outlook", "zoho"].includes(provider))         return json({ error: "provider must be gmail, outlook, or zoho" }, 400);
   if (max_emails < 1 || max_emails > 200)               return json({ error: "max_emails must be 1–200" }, 400);
 
   // Permission check: analyst or above
@@ -404,6 +501,9 @@ Deno.serve(async (req: Request) => {
   try {
     if (provider === "gmail") {
       emails = await fetchGmailMessages(token, since, max_emails);
+    } else if (provider === "zoho") {
+      const mailBase = (conn as EmailConnection).zoho_mail_base ?? "https://mail.zoho.com";
+      emails = await fetchZohoMessages(token, since, max_emails, mailBase);
     } else {
       emails = await fetchOutlookMessages(token, since, max_emails);
     }

@@ -1018,7 +1018,7 @@ function InboxPanel({ emailConnections, invoices, syncing, onSync, onGoToIntegra
                   disabled={syncing}
                   style={{ fontSize: "12px", fontWeight: 600, padding: "7px 14px", background: "#EAF7F0", color: "#1A9E5F", border: "1px solid #A7F3D0", borderRadius: "8px", cursor: syncing ? "not-allowed" : "pointer", opacity: syncing ? 0.6 : 1, display: "flex", alignItems: "center", gap: "6px" }}
                 >
-                  {syncing ? "Scanning…" : `Scan ${conn.provider === "gmail" ? "Gmail" : "Outlook"}`}
+                  {syncing ? "Scanning…" : `Scan ${conn.provider === "gmail" ? "Gmail" : conn.provider === "zoho" ? "Zoho Mail" : "Outlook"}`}
                   {conn.last_synced_at && !syncing && (
                     <span style={{ fontSize: "10px", fontWeight: 400, color: "#6B6B60" }}>· last {fmtDate(conn.last_synced_at)}</span>
                   )}
@@ -1151,6 +1151,17 @@ const EMAIL_PROVIDERS = [
         <path d="M9 10h8a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1z" fill="#fff" opacity=".9"/>
         <path d="M17 12l6 3v6l-6 3V12z" fill="#fff" opacity=".7"/>
         <path d="M17 12l6 3-6 3v-6z" fill="#fff"/>
+      </svg>
+    ),
+  },
+  {
+    id: "zoho", name: "Zoho Mail",
+    description: "Connect your Zoho Mail account to extract invoice and remittance data from your inbox automatically.",
+    logo: (
+      <svg width="32" height="32" viewBox="0 0 32 32">
+        <rect width="32" height="32" rx="8" fill="#fff" stroke="#E8E8E0"/>
+        <text x="16" y="21" textAnchor="middle" fontSize="11" fontWeight="700" fontFamily="sans-serif" fill="#E42527">Z</text>
+        <rect x="5" y="22" width="22" height="3" rx="1.5" fill="#F4A800"/>
       </svg>
     ),
   },
@@ -1705,7 +1716,8 @@ export default function Dashboard() {
       setSearchParams({}, { replace: true });
       sync(connected);
     } else if (emailConnected) {
-      setToast({ message: `${emailConnected === "gmail" ? "Gmail" : "Outlook"} connected! You can now scan your inbox for invoices.`, type: "success" });
+      const providerName = emailConnected === "gmail" ? "Gmail" : emailConnected === "zoho" ? "Zoho Mail" : "Outlook";
+      setToast({ message: `${providerName} connected! You can now scan your inbox for invoices.`, type: "success" });
       setActive("integrations");
       setSearchParams({}, { replace: true });
     } else if (err) {

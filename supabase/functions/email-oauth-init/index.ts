@@ -21,7 +21,7 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, content-type",
 };
 
-type EmailProvider = "gmail" | "outlook";
+type EmailProvider = "gmail" | "outlook" | "zoho";
 
 const OAUTH_CONFIG: Record<EmailProvider, { authUrl: string; scopes: string }> = {
   gmail: {
@@ -32,6 +32,12 @@ const OAUTH_CONFIG: Record<EmailProvider, { authUrl: string; scopes: string }> =
   outlook: {
     authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
     scopes: "https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/User.Read offline_access",
+  },
+  zoho: {
+    authUrl: "https://accounts.zoho.com/oauth/v2/auth",
+    // ZohoMail.messages.READ = read emails; ZohoMail.accounts.READ = get account ID;
+    // AaaServer.profile.READ = fetch connected email address
+    scopes: "ZohoMail.messages.READ ZohoMail.accounts.READ AaaServer.profile.READ",
   },
 };
 
@@ -61,7 +67,7 @@ Deno.serve(async (req: Request) => {
   const orgId    = url.searchParams.get("org_id");
 
   if (!provider || !(provider in OAUTH_CONFIG)) {
-    return json({ error: "Invalid provider. Must be gmail or outlook." }, 400);
+    return json({ error: "Invalid provider. Must be gmail, outlook, or zoho." }, 400);
   }
   if (!orgId) return json({ error: "org_id is required" }, 400);
 
@@ -101,6 +107,11 @@ Deno.serve(async (req: Request) => {
     // offline access_type gets us a refresh_token; prompt=consent forces it even if already authorized
     authUrl.searchParams.set("access_type", "offline");
     authUrl.searchParams.set("prompt",      "consent");
+  }
+
+  if (provider === "zoho") {
+    // offline access_type gets us a refresh_token
+    authUrl.searchParams.set("access_type", "offline");
   }
 
   return json({ url: authUrl.toString() });
