@@ -10,6 +10,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { permissionsForRole, can as _can } from "../lib/permissions";
+import posthog from "../lib/posthog";
 
 const OrgContext = createContext(null);
 const ACTIVE_ORG_KEY = "fc_active_org_id";
@@ -55,6 +56,7 @@ export function OrgProvider({ children }) {
       setRole(r);
       setPermissions(permissionsForRole(r));
       await loadOrgDetails(active.id, r);
+      posthog.group("org", active.id, { name: active.name, slug: active.slug });
     } else {
       setRole(null);
       setPermissions([]);
@@ -106,6 +108,7 @@ export function OrgProvider({ children }) {
     setRole(found.myRole);
     setPermissions(permissionsForRole(found.myRole));
     await loadOrgDetails(orgId, found.myRole);
+    posthog.group("org", found.id, { name: found.name, slug: found.slug });
   }, [orgs, loadOrgDetails]);
 
   // ── Create a new org (user becomes owner) ──────────────────────────────────

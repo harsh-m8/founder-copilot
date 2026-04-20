@@ -1,11 +1,20 @@
-import { StrictMode, lazy, Suspense } from 'react'
+import { StrictMode, lazy, Suspense, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { PostHogProvider } from 'posthog-js/react'
 import './index.css'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import OrgGuard from './components/OrgGuard.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { OrgProvider } from './context/OrgContext.jsx'
+import posthog from './lib/posthog.js'
+
+// Fires a $pageview event on every client-side route change for SPA tracking
+function PostHogPageView() {
+  const location = useLocation()
+  useEffect(() => { posthog.capture('$pageview') }, [location])
+  return null
+}
 
 // Each route gets its own chunk — only loaded when the user navigates there
 const App      = lazy(() => import('./App.jsx'))
@@ -28,10 +37,12 @@ function PageLoader() {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    <PostHogProvider client={posthog}>
     <BrowserRouter>
       <AuthProvider>
         <OrgProvider>
           <Suspense fallback={<PageLoader />}>
+            <PostHogPageView />
             <Routes>
               {/* Public */}
               <Route path="/" element={<App />} />
@@ -58,5 +69,6 @@ createRoot(document.getElementById('root')).render(
         </OrgProvider>
       </AuthProvider>
     </BrowserRouter>
+    </PostHogProvider>
   </StrictMode>,
 )

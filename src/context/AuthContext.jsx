@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import posthog from "../lib/posthog";
 
 const AuthContext = createContext(null);
 
@@ -16,7 +17,13 @@ export function AuthProvider({ children }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        posthog.identify(u.id, { email: u.email });
+      } else {
+        posthog.reset(); // clears identity on sign-out
+      }
     });
 
     return () => subscription.unsubscribe();

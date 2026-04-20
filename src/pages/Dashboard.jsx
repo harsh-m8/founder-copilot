@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import posthog from "../lib/posthog";
 import { useOrg } from "../context/OrgContext";
 import { useAccountingData } from "../hooks/useAccountingData";
 import { useEmailInvoices } from "../hooks/useEmailInvoices";
@@ -1167,7 +1168,7 @@ const EMAIL_PROVIDERS = [
   },
 ];
 
-function IntegrationsPanel({ connections, syncing, onConnect, onConnectDirect, onSync, onDisconnect, emailConnections, emailSyncing, onConnectEmail, onSyncEmail, onDisconnectEmail }) {
+function IntegrationsPanel({ connections, syncing, onConnect, onConnectDirect, onSync, onDisconnect, emailConnections, emailSyncing, onConnectEmail, onSyncEmail, onDisconnectEmail, emailError, onClearEmailError }) {
   const { can } = useOrg();
   const canManage = can("integrations:manage");
   const canSync   = can("integrations:sync");
@@ -1270,6 +1271,12 @@ function IntegrationsPanel({ connections, syncing, onConnect, onConnectDirect, o
           View extracted invoices in the <strong>Inbox Invoices</strong> section.
           {!canManage && <span style={{ color: "#D97706" }}> You need admin access to connect or disconnect accounts.</span>}
         </p>
+        {emailError && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", padding: "10px 14px", marginBottom: "12px" }}>
+            <span style={{ fontSize: "13px", color: "#DC2626" }}>{emailError}</span>
+            <button onClick={onClearEmailError} style={{ background: "none", border: "none", cursor: "pointer", color: "#DC2626", fontSize: "16px", lineHeight: 1, padding: "0 0 0 12px" }}>×</button>
+          </div>
+        )}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {EMAIL_PROVIDERS.map((p) => {
             const conn        = (emailConnections ?? []).find((c) => c.provider === p.id);
@@ -1697,7 +1704,7 @@ export default function Dashboard() {
 
   const { org, can, loading: orgLoading } = useOrg();
   const { connections, financialData, snapshot, loading: dataLoading, syncing, error, connect, connectDirect, sync, disconnect } = useAccountingData();
-  const { emailConnections, invoices, loading: emailLoading, syncing: emailSyncing, error: emailError, connectEmail, syncEmail, disconnectEmail, markReviewed } = useEmailInvoices();
+  const { emailConnections, invoices, loading: emailLoading, syncing: emailSyncing, error: emailError, clearError: clearEmailError, connectEmail, syncEmail, disconnectEmail, markReviewed } = useEmailInvoices();
   const { reminders, sendingReminder, reminderError, sendReminder, lastReminderFor, clearReminderError } = useARData();
   const { matches: remittanceMatches, matching, markingPaid, markPaid, dismissMatch, runMatch } = useRemittanceMatches();
 
@@ -1718,6 +1725,7 @@ export default function Dashboard() {
     } else if (emailConnected) {
       const providerName = emailConnected === "gmail" ? "Gmail" : emailConnected === "zoho" ? "Zoho Mail" : "Outlook";
       setToast({ message: `${providerName} connected! You can now scan your inbox for invoices.`, type: "success" });
+      posthog.capture("email_connected", { provider: emailConnected });
       setActive("integrations");
       setSearchParams({}, { replace: true });
     } else if (err) {
@@ -1740,7 +1748,7 @@ export default function Dashboard() {
     inbox:        <InboxPanel emailConnections={emailConnections} invoices={invoicesWithActions} syncing={emailSyncing} onSync={syncEmail} onGoToIntegrations={goToIntegrations} error={emailError} />,
     reporting:    <ComingSoon title="Financial Reporting"  onGoToIntegrations={goToIntegrations} />,
     controls:     <ComingSoon title="Financial Controls"   onGoToIntegrations={goToIntegrations} />,
-    integrations: <IntegrationsPanel connections={connections} syncing={syncing} onConnect={connect} onConnectDirect={connectDirect} onSync={sync} onDisconnect={disconnect} emailConnections={emailConnections} emailSyncing={emailSyncing} onConnectEmail={connectEmail} onSyncEmail={syncEmail} onDisconnectEmail={disconnectEmail} />,
+    integrations: <IntegrationsPanel connections={connections} syncing={syncing} onConnect={connect} onConnectDirect={connectDirect} onSync={sync} onDisconnect={disconnect} emailConnections={emailConnections} emailSyncing={emailSyncing} onConnectEmail={connectEmail} onSyncEmail={syncEmail} onDisconnectEmail={disconnectEmail} emailError={emailError} onClearEmailError={clearEmailError} />,
     team:         <TeamPanel />,
     settings:     <SettingsPanel />,
   };

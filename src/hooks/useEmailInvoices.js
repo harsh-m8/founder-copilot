@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { useOrg } from "../context/OrgContext";
+import posthog from "../lib/posthog";
 
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL + "/functions/v1";
 
@@ -61,15 +62,18 @@ export function useEmailInvoices() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setError("Not authenticated"); return; }
 
-    const res = await fetch(
-      `${FUNCTIONS_URL}/email-oauth-init?provider=${provider}&org_id=${org.id}`,
-      { headers: { Authorization: `Bearer ${session.access_token}` } },
-    );
-
-    const body = await res.json();
-    if (!res.ok || !body.url) { setError(body.error ?? "Failed to start OAuth"); return; }
-
-    window.location.href = body.url;
+    try {
+      const res  = await fetch(
+        `${FUNCTIONS_URL}/email-oauth-init?provider=${provider}&org_id=${org.id}`,
+        { headers: { Authorization: `Bearer ${session.access_token}` } },
+      );
+      const body = await res.json();
+      if (!res.ok || !body.url) { setError(body.error ?? "Failed to start OAuth"); return; }
+      posthog.capture("email_connect_started", { provider });
+      window.location.href = body.url;
+    } catch (e) {
+      setError("Could not reach the server. Make sure the edge functions are deployed.");
+    }
   }, [can, org]);
 
   // ── Sync emails — requires integrations:sync ──────────────────────────────
@@ -96,6 +100,13 @@ export function useEmailInvoices() {
 
     const body = await res.json();
     if (!res.ok) { setError(body.error ?? "Sync failed"); setSyncing(false); return null; }
+
+    posthog.capture("email_synced", {
+      provider,
+      emails_processed:      body.emails_processed,
+      invoices_extracted:    body.invoices_extracted,
+      remittances_extracted: body.remittances_extracted,
+    });
 
     await loadData();
     setSyncing(false);
@@ -148,6 +159,7 @@ export function useEmailInvoices() {
     loading,
     syncing,
     error,
+    clearError: () => setError(null),
     connectEmail,
     syncEmail,
     disconnectEmail,
