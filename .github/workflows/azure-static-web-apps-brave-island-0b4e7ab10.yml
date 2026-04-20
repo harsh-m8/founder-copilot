@@ -10,6 +10,17 @@ on:
       - main
 
 jobs:
+  deploy_edge_functions:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    name: Deploy Supabase Edge Functions
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy Edge Functions
+        run: npx supabase@latest functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
   build_and_deploy_job:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
