@@ -91,8 +91,9 @@ Deno.serve(async (req: Request) => {
 
   const tokens = await tokenRes.json();
   if (!tokens.access_token) {
+    const zohoErr = tokens.error ?? tokens.message ?? JSON.stringify(tokens);
     console.error("Token exchange failed", tokens);
-    return redirect(`${frontendUrl}/dashboard?error=token_exchange_failed`);
+    return redirect(`${frontendUrl}/dashboard?error=token_exchange_failed&detail=${encodeURIComponent(zohoErr)}`);
   }
 
   // ── Derive Zoho Mail API base URL from the token response ────────────────

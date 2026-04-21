@@ -1729,7 +1729,8 @@ export default function Dashboard() {
       setActive("integrations");
       setSearchParams({}, { replace: true });
     } else if (err) {
-      setToast({ message: `Connection failed: ${err.replace(/_/g, " ")}`, type: "error" });
+      const detail = searchParams.get("detail");
+      setToast({ message: `Connection failed: ${err.replace(/_/g, " ")}${detail ? ` (${detail})` : ""}`, type: "error" });
       setSearchParams({}, { replace: true });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
