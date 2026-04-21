@@ -15,10 +15,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 type EmailProvider = "gmail" | "outlook" | "zoho";
 
+const ZOHO_ACCOUNTS_DOMAIN = Deno.env.get("ZOHO_ACCOUNTS_DOMAIN") ?? "accounts.zoho.com";
+
 const TOKEN_URLS: Record<EmailProvider, string> = {
   gmail:   "https://oauth2.googleapis.com/token",
   outlook: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-  zoho:    "https://accounts.zoho.com/oauth/v2/token",
+  zoho:    `https://${ZOHO_ACCOUNTS_DOMAIN}/oauth/v2/token`,
 };
 
 function redirect(to: string) { return Response.redirect(to, 302); }

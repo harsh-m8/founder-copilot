@@ -33,6 +33,7 @@ const OAUTH_CONFIG: Record<EmailProvider, { authUrl: string; scopes: string }> =
     authUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
     scopes: "https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/User.Read offline_access",
   },
+  // authUrl for zoho is built dynamically from ZOHO_ACCOUNTS_DOMAIN secret
   zoho: {
     authUrl: "https://accounts.zoho.com/oauth/v2/auth",
     // ZohoMail.messages.READ = read emails; ZohoMail.accounts.READ = get account ID;
@@ -96,7 +97,13 @@ Deno.serve(async (req: Request) => {
 
   if (stateErr) return json({ error: "Failed to create OAuth state" }, 500);
 
-  const authUrl = new URL(OAUTH_CONFIG[provider].authUrl);
+  // For Zoho, use region-specific accounts domain (e.g. accounts.zoho.in for India)
+  const zohoAccountsDomain = Deno.env.get("ZOHO_ACCOUNTS_DOMAIN") ?? "accounts.zoho.com";
+  const baseAuthUrl = provider === "zoho"
+    ? `https://${zohoAccountsDomain}/oauth/v2/auth`
+    : OAUTH_CONFIG[provider].authUrl;
+
+  const authUrl = new URL(baseAuthUrl);
   authUrl.searchParams.set("client_id",     clientId);
   authUrl.searchParams.set("redirect_uri",  redirectUri);
   authUrl.searchParams.set("response_type", "code");
