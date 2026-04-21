@@ -2,6 +2,33 @@
 -- Migration 2: Multi-tenant organisations, roles, and invitations
 -- ─────────────────────────────────────────────────────────────────────────────
 
+-- ── 0. Drop pre-existing policies/triggers that may have been created manually ─
+DROP POLICY IF EXISTS "org: members can view"          ON organizations;
+DROP POLICY IF EXISTS "org: admin can update"          ON organizations;
+DROP POLICY IF EXISTS "org: owner can delete"          ON organizations;
+DROP POLICY IF EXISTS "org: any user can create"       ON organizations;
+
+DROP POLICY IF EXISTS "members: any member can view"   ON organization_members;
+DROP POLICY IF EXISTS "members: admin can insert"      ON organization_members;
+DROP POLICY IF EXISTS "members: admin can update"      ON organization_members;
+DROP POLICY IF EXISTS "members: admin or self can delete" ON organization_members;
+
+DROP POLICY IF EXISTS "invitations: admin can view"    ON org_invitations;
+DROP POLICY IF EXISTS "invitations: admin can create"  ON org_invitations;
+DROP POLICY IF EXISTS "invitations: admin can delete"  ON org_invitations;
+DROP POLICY IF EXISTS "invitations: public read by token" ON org_invitations;
+
+DROP POLICY IF EXISTS "connections: members can view"  ON accounting_connections;
+DROP POLICY IF EXISTS "connections: admin can manage"  ON accounting_connections;
+
+DROP POLICY IF EXISTS "snapshots: members can view"    ON financial_snapshots;
+DROP POLICY IF EXISTS "snapshots: analyst can write"   ON financial_snapshots;
+
+DROP POLICY IF EXISTS "profiles: own"                  ON user_profiles;
+DROP POLICY IF EXISTS "profiles: org members can view" ON user_profiles;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
 -- ── 1. Core organisation table ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS organizations (
   id          uuid        DEFAULT gen_random_uuid() PRIMARY KEY,

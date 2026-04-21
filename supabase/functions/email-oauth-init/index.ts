@@ -37,7 +37,7 @@ const OAUTH_CONFIG: Record<EmailProvider, { authUrl: string; scopes: string }> =
     authUrl: "https://accounts.zoho.com/oauth/v2/auth",
     // ZohoMail.messages.READ = read emails; ZohoMail.accounts.READ = get account ID;
     // AaaServer.profile.READ = fetch connected email address
-    scopes: "ZohoMail.messages.READ ZohoMail.accounts.READ AaaServer.profile.READ",
+    scopes: "ZohoMail.messages.READ,ZohoMail.accounts.READ,AaaServer.profile.READ",
   },
 };
 
