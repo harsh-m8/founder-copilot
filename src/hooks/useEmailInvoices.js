@@ -68,10 +68,16 @@ export function useEmailInvoices() {
         { headers: { Authorization: `Bearer ${session.access_token}` } },
       );
       const body = await res.json();
-      if (!res.ok || !body.url) { setError(body.error ?? "Failed to start OAuth"); return; }
+      if (!res.ok || !body.url) {
+        const msg = body.error ?? body.message ?? body.code ?? `HTTP ${res.status}`;
+        console.error("email-oauth-init failed", res.status, body);
+        setError(`OAuth init failed: ${msg}`);
+        return;
+      }
       posthog.capture("email_connect_started", { provider });
       window.location.href = body.url;
     } catch (e) {
+      console.error("email-oauth-init fetch error", e);
       setError("Could not reach the server. Make sure the edge functions are deployed.");
     }
   }, [can, org]);
